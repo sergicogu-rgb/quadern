@@ -11,7 +11,7 @@
 <style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif}img{max-width:100%}[hidden]{display:none!important}
 #login{position:fixed;inset:0;z-index:50;background:var(--bg,#08082a);color:var(--fg,#eef1f4);overflow:auto;padding:calc(40px + env(safe-area-inset-top,0px)) max(20px,env(safe-area-inset-right,0px)) 40px max(20px,env(safe-area-inset-left,0px))}
 .lgin{max-width:420px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
-.lgbrand{font-family:"Barlow Condensed","Arial Narrow",sans-serif;font-weight:800;font-size:20px;letter-spacing:.06em;text-transform:uppercase}.lgbrand i{font-style:normal;color:var(--accent,#5b8cff)}</style>
+.lgbrand{font-family:Inter,system-ui,sans-serif;font-weight:800;font-size:22px;letter-spacing:-.03em}.lgbrand i{font-style:italic;font-weight:600;color:var(--accent,#5b8cff)}</style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <script src="store.js"></script>
 </head><body>
@@ -19,7 +19,7 @@
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Barlow:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,400..900;1,14..32,500..900&display=swap">
 <style>
 /* Layout: app mòbil fosca d'una columna. Inici amb la rutina del dia; mode sessió amb un exercici cada vegada i barra d'accions fixa a baix */
 :root{
@@ -27,8 +27,8 @@
   --accent:#5b8cff; --accent-2:#34d4ff; --accent-ink:#ffffff; --accent-soft:#1a2166;
   --grad:linear-gradient(135deg,#5b8cff 0%,#34d4ff 100%);
   --good:#3ecf8e; --good-ink:#06281a; --good-soft:#11291f; --warn:#f5b04c; --warn-soft:#30250f; --bad:#ff6b6b; --bad-soft:#341619;
-  --display:"Barlow Condensed","Arial Narrow",Arial,sans-serif;
-  --body:"Barlow",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --display:"Inter","Inter Display",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --body:"Inter",system-ui,-apple-system,"Segoe UI",sans-serif;
   color-scheme:dark;
 }
 @media (prefers-color-scheme: light){:root:not([data-theme="dark"]){
@@ -356,6 +356,28 @@ body.cv .top .brand{font-size:18px}
 <input type="file" id="imp-in" accept="application/json,.json" hidden>
 <div id="lb" class="lb" hidden><p id="lb-name"></p><img id="lb-img" alt=""><div class="actions"><button id="lb-change">Canviar foto</button><button class="primary" id="lb-close">Tancar</button></div></div>
 
+<style>
+/* Tipografia 2026-11: Inter (Rasmus Andersson) en tota l'app. Títols en minúscula amb tracking negatiu i accent en cursiva amb degradat. */
+body{font-feature-settings:"cv11","ss01","ss03";-webkit-font-smoothing:antialiased;font-size:16px;letter-spacing:-.006em}
+h1,h2,h3{letter-spacing:-.035em;text-transform:none!important;font-weight:800}
+h1{font-size:38px;line-height:1.02} h2{font-size:30px} h3{font-size:19px;letter-spacing:-.02em}
+.hello h1{font-size:42px!important;line-height:1}
+h1 em,h2 em,.em{font-weight:800;letter-spacing:-.04em}
+.lbl{font-size:11px;letter-spacing:.1em;font-weight:600}
+.brand{font-family:var(--display);font-weight:800;font-size:19px;letter-spacing:-.03em;text-transform:none}
+.brand i{font-style:italic;font-weight:600;color:var(--accent)}
+.big,.tile .v,.quick .val,.sumhero .dur,.wotop .clock{letter-spacing:-.04em;font-weight:800}
+.tile .v{font-size:28px}
+.tag{font-family:var(--body)!important;font-size:12px!important;letter-spacing:.06em!important;font-weight:700;padding:4px 10px}
+.hero h2{font-size:34px;letter-spacing:-.04em}
+button{letter-spacing:-.01em}
+button.go{font-family:var(--body)!important;text-transform:none!important;letter-spacing:-.02em!important;font-size:20px!important;font-weight:700!important}
+.wotop .pos{font-family:var(--body)!important;font-size:15px!important;font-weight:700}
+.empty b{font-size:19px;letter-spacing:-.02em}
+.plist .k{font-family:var(--body);font-size:14px;font-weight:600}
+.plist .nm{font-size:15.5px;letter-spacing:-.01em}
+#tabs a{letter-spacing:.02em}
+</style>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js"></script>
 <script src="coach.js"></script>
 <script src="engage.js"></script>

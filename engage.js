@@ -78,27 +78,27 @@ function funLine(kg){const f=funFact(kg); if(!f) return ""; return `<div class="
 
 /* ---------- targeta per compartir (imatge 1080×1350 per a Instagram) ---------- */
 async function shareSession(s){
-  try{ if(document.fonts&&document.fonts.load){await Promise.all([document.fonts.load('800 120px "Barlow Condensed"'),document.fonts.load('italic 800 120px "Barlow Condensed"'),document.fonts.load('600 40px "Barlow"')])} }catch(e){}
+  try{ if(document.fonts&&document.fonts.load){await Promise.all([document.fonts.load('800 120px "Inter"'),document.fonts.load('italic 800 120px "Inter"'),document.fonts.load('600 40px "Inter"')])} }catch(e){}
   const W=1080,H=1350,c=document.createElement("canvas"); c.width=W;c.height=H; const x=c.getContext("2d");
-  const D='"Barlow Condensed","Arial Narrow",Arial,sans-serif', B='"Barlow",system-ui,sans-serif';
+  const D='"Inter","Inter Display",system-ui,sans-serif', B='"Inter",system-ui,sans-serif';
   // fons
   let g=x.createLinearGradient(0,0,W,H); g.addColorStop(0,"#0d0f45"); g.addColorStop(1,"#05051c"); x.fillStyle=g; x.fillRect(0,0,W,H);
   const rg=x.createRadialGradient(W*.9,H*.05,0,W*.9,H*.05,W*.9); rg.addColorStop(0,"rgba(91,140,255,.45)"); rg.addColorStop(1,"rgba(91,140,255,0)"); x.fillStyle=rg; x.fillRect(0,0,W,H);
   x.strokeStyle="rgba(52,212,255,.18)"; x.lineWidth=60; x.beginPath(); x.arc(W-60,140,260,0,Math.PI*2); x.stroke();
   const acc=x.createLinearGradient(0,0,W,0); acc.addColorStop(0,"#5b8cff"); acc.addColorStop(1,"#34d4ff");
   // capçalera
-  x.fillStyle="#fff"; x.font=`800 44px ${D}`; x.textBaseline="alphabetic"; x.fillText("QUADERN",80,120);
+  x.fillStyle="#fff"; x.font=`800 46px ${D}`; x.textBaseline="alphabetic"; x.fillText("Quadern",80,120);
   x.fillStyle=acc; x.fillRect(80,138,64,5);
   x.fillStyle="rgba(255,255,255,.6)"; x.font=`600 30px ${B}`;
   const dstr=dt(s.date).toLocaleDateString("ca-ES",{weekday:"long",day:"numeric",month:"long"}); x.fillText(dstr.charAt(0).toUpperCase()+dstr.slice(1),80,190);
   // títol
   const {tag,title}=(typeof splitName==="function"?splitName(s.name):{tag:"",title:s.name});
   x.fillStyle="#fff"; x.font=`800 104px ${D}`;
-  const words=String(title||s.name||"Sessió").toUpperCase().split(" "); let line="",y=330; const lines=[];
+  try{x.letterSpacing="-4px"}catch(e){} const words=String(title||s.name||"Sessió").split(" "); let line="",y=330; const lines=[];
   words.forEach(w=>{const t=line?line+" "+w:w; if(x.measureText(t).width>W-160&&line){lines.push(line);line=w}else line=t}); lines.push(line);
-  lines.slice(0,2).forEach((l,i)=>x.fillText(l,80,y+i*100));
+  lines.slice(0,2).forEach((l,i)=>x.fillText(l,80,y+i*100)); const LS=v=>{try{x.letterSpacing=v}catch(e){}}; LS("-2px");
   y+=Math.min(lines.length,2)*100+10;
-  if(tag){x.font=`italic 800 56px ${D}`; x.fillStyle=acc; x.fillText(String(tag).toUpperCase(),80,y); y+=30}
+  if(tag){x.font=`italic 800 56px ${D}`; x.fillStyle=acc; x.fillText(String(tag),80,y); y+=30}
   // xifres
   const all=s.items.flatMap(i=>i.sets), kg=vol(all);
   let prs=0; s.items.forEach(it=>{const best=bestE1(it.sets); const hist=S.sessions.filter(o=>o.id!==s.id&&o.date<=s.date).flatMap(o=>(o.items||[]).filter(i=>i.exId===it.exId).flatMap(i=>i.sets)); const pb=hist.length?bestE1(hist):0; if(pb&&best>pb) prs++});
@@ -106,18 +106,18 @@ async function shareSession(s){
   const top=y+90, cw=(W-160-40)/3;
   stats.forEach(([v,l],i)=>{const cx=80+i*(cw+20);
     x.fillStyle="rgba(255,255,255,.06)"; roundRect(x,cx,top,cw,230,28); x.fill(); x.strokeStyle="rgba(255,255,255,.12)"; x.lineWidth=2; x.stroke();
-    x.fillStyle="#fff"; x.font=`800 ${v.length>5?84:100}px ${D}`; x.fillText(v,cx+30,top+140);
-    x.fillStyle="rgba(255,255,255,.6)"; x.font=`700 30px ${D}`; x.fillText(l,cx+32,top+192)});
+    LS("-4px"); x.fillStyle="#fff"; x.font=`800 ${v.length>5?84:100}px ${D}`; x.fillText(v,cx+30,top+140);
+    LS("2px"); x.fillStyle="rgba(255,255,255,.6)"; x.font=`600 26px ${B}`; x.fillText(l,cx+32,top+192)});
   // frase divertida
   const f=funFact(kg); let fy=top+330;
-  if(f){x.fillStyle="rgba(255,255,255,.7)"; x.font=`600 34px ${B}`; x.fillText("Com aixecar",80,fy);
-    x.fillStyle=acc; x.font=`italic 800 92px ${D}`; const ft=`${fn(f.n,1)} × ${f.t}`.toUpperCase();
+  if(f){LS("0px"); x.fillStyle="rgba(255,255,255,.7)"; x.font=`500 34px ${B}`; x.fillText("Com aixecar",80,fy);
+    LS("-3px"); x.fillStyle=acc; x.font=`italic 800 92px ${D}`; const ft=`${fn(f.n,1)} × ${f.t}`;
     wrap(x,ft,80,fy+95,W-160,88)}
-  if(prs){x.fillStyle="#3ecf8e"; x.font=`800 40px ${D}`; x.fillText(`🏆 ${prs} ${prs===1?"RÈCORD NOU":"RÈCORDS NOUS"}`,80,H-170)}
+  LS("0px"); if(prs){x.fillStyle="#3ecf8e"; x.font=`800 40px ${D}`; x.fillText(`🏆 ${prs} ${prs===1?"RÈCORD NOU":"RÈCORDS NOUS"}`,80,H-170)}
   // peu
   x.fillStyle=acc; roundRect(x,80,H-110,W-160,6,3); x.fill();
   x.fillStyle="rgba(255,255,255,.55)"; x.font=`600 28px ${B}`; x.fillText("Entrenat amb el Quadern",80,H-60);
-  x.textAlign="right"; x.fillStyle="#fff"; x.font=`italic 800 34px ${D}`; x.fillText("UNA MÉS.",W-80,H-60); x.textAlign="left";
+  x.textAlign="right"; LS("-1px"); x.fillStyle="#fff"; x.font=`italic 800 36px ${D}`; x.fillText("Una més.",W-80,H-60); x.textAlign="left";
   const blob=await new Promise(r=>c.toBlob(r,"image/png"));
   const file=new File([blob],"quadern-"+s.date+".png",{type:"image/png"});
   try{
