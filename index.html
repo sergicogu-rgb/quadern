@@ -330,6 +330,7 @@ body.cv .top .brand{font-size:18px}
     <section id="v-resum" hidden></section>
     <section id="v-rutines" hidden></section>
     <section id="v-pauta" hidden></section>
+    <section id="v-fitxa" hidden></section>
   </main>
 </div>
 
@@ -356,7 +357,7 @@ body.cv .top .brand{font-size:18px}
 <script src="coach.js"></script>
 <script>
 const MUSCLES=["Pit","Esquena","Espatlles","Bíceps","Tríceps","Quàdriceps","Isquiotibials","Glutis","Bessons","Abdominals","Avantbraç","Altres"];
-const VIEWS=["avui","pes","progres","setmana","any","nutricio","informes","clients","resum","rutines","pauta"];
+const VIEWS=["avui","pes","progres","setmana","any","nutricio","informes","clients","resum","rutines","pauta","fitxa"];
 const ALIAS={registre:"avui",historial:"setmana"};
 const $=s=>document.querySelector(s);
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -379,8 +380,8 @@ const effective=s=>s.rir==null||s.rir<=4;
 const splitName=n=>{const p=String(n||"").split(" · ");return p.length>1?{tag:p[0],title:p.slice(1).join(" · ")}:{tag:"",title:n||"Sessió"}};
 
 let db=null, cur="avui", chart=null, wchart=null, dirty=false, lastSaved=null, confirmDel=null, weekCursor=weekStart(todayISO()), sheetKind=null, progEx=null, showAll=false;
-const S={exercises:[],sessions:[],templates:[],reports:[],bodyweight:[],targets:[],nutrition:[],kcallog:[]};
-const ready={exercises:false,sessions:false,templates:false,reports:false,bodyweight:false,targets:false,nutrition:false,kcallog:false};
+const S={exercises:[],sessions:[],templates:[],reports:[],bodyweight:[],targets:[],nutrition:[],kcallog:[],intake:[]};
+const ready={exercises:false,sessions:false,templates:false,reports:false,bodyweight:false,targets:false,nutrition:false,kcallog:false,intake:false};
 const newDraft=()=>({id:null,date:todayISO(),templateId:"",name:"",items:[],notes:"",cur:0});
 let draft=LS.get("draft",null)||newDraft();
 /* Esborrany de la sessió: es desa al mòbil i també al núvol (drafts/current) perquè no es perdi si es tanca l'app */
@@ -501,7 +502,7 @@ function render(){
   renderTop();
   const wo=cur==="avui"&&inWorkout()&&!lastSaved;
   $("#tabs").hidden=wo; $("#wobar").hidden=!wo;
-  ({avui:renderAvui,pes:renderPes,progres:renderProgres,setmana:renderSetmana,any:renderAny,nutricio:renderNutricio,informes:renderInformes,clients:renderClients,resum:renderResum,rutines:renderRutines,pauta:renderPauta})[cur]();
+  ({avui:renderAvui,pes:renderPes,progres:renderProgres,setmana:renderSetmana,any:renderAny,nutricio:renderNutricio,informes:renderInformes,clients:renderClients,resum:renderResum,rutines:renderRutines,pauta:renderPauta,fitxa:renderFitxa})[cur]();
   tick();
 }
 document.querySelector("main").addEventListener("focusout",()=>setTimeout(()=>{ if(dirty&&!$("#v-"+cur).contains(document.activeElement)) render(); },0));
@@ -1177,10 +1178,11 @@ if(window.QStore) QStore.on("_view",()=>{ lastSaved=null; progEx=null; nutShow=n
   const sub=(col,order)=>{let q=db.collection(col); if(order) q=q.orderBy(order[0],order[1]);
     q.onSnapshot(snap=>{S[col]=snap.docs.map(d=>({id:d.id,...d.data()})); mergePend(col);
       if(!snap.metadata.fromCache){ready[col]=true; if(Object.values(ready).every(Boolean)){clearTimeout(timer);setStatus("")}}
+      if(col==="intake"&&needIntake()&&cur!=="fitxa"){location.hash="fitxa";return}
       if(sheetKind) return; render();},
     err=>{clearTimeout(timer);setStatus("No s'han pogut carregar les dades ("+col+"): "+err.message)});};
   restoreDraft(); flushPend();
-  sub("exercises"); sub("sessions",["date","desc"]); sub("templates"); sub("reports",["week","desc"]); sub("bodyweight",["date","desc"]); sub("targets"); sub("nutrition"); sub("kcallog",["date","desc"]);
+  sub("exercises"); sub("sessions",["date","desc"]); sub("templates"); sub("reports",["week","desc"]); sub("bodyweight",["date","desc"]); sub("targets"); sub("nutrition"); sub("kcallog",["date","desc"]); sub("intake");
 })();
 </script>
 

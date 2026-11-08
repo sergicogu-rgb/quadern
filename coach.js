@@ -38,6 +38,8 @@ function allowView(v){
   if(v==="clients") return IS_COACH()?v:"avui";
   if(v==="rutines"||v==="pauta") return IS_COACH()?v:"avui";
   if(v==="resum") return "avui";
+  if(v==="fitxa") return IS_CLIENT()?v:"avui";
+  if(needIntake()) return "fitxa";
   return v;
 }
 
@@ -70,7 +72,7 @@ function renderClients(){
   else if(ovw==null) h+=`<div class="empty"><b>Carregant…</b></div>`;
   else if(!ovw.length) h+=`<div class="empty"><b>Encara no tens clients</b>Convida el primer amb el formulari de dalt.</div>`;
   else ovw.forEach(c=>{
-    const cons=c.consent_at?`<span class="pill">RGPD ✓</span>`:`<span class="pill w">Consentiment pendent</span>`;
+    const cons=(c.consent_at?`<span class="pill">RGPD ✓</span>`:`<span class="pill w">Consentiment pendent</span>`)+(c.consent_at&&!c.intake_done?`<span class="pill w">Fitxa pendent</span>`:"")+(c.intake_alert?`<span class="pill w">Salut: revisar</span>`:"");
     h+=`<article class="card stack"><div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start">
       <div style="min-width:0"><h3 style="margin:0">${esc(c.name||c.email)}</h3><div class="sub" style="font-size:13px;overflow:hidden;text-overflow:ellipsis">${esc(c.email||"")}</div></div>
       <div class="ph" style="justify-content:flex-end">${cons}</div></div>
@@ -177,6 +179,7 @@ function renderResum(){
   const el=$("#v-resum"); const v=QStore.viewing||{}; const tp=tplsSorted(), nx=nextTemplate(tp), P=activePauta(), last=sessionsSorted()[0];
   const bw=bwData(), lb=bw[bw.length-1], st=kcalStats();
   el.innerHTML=`<div class="stack"><div class="vhead"><span class="lbl">${esc(v.email||"")}</span><h1>${esc(v.name||"Client")}</h1></div>
+    ${intakeCard()}
     ${autoReportCard()}
     <div class="card tw" style="padding:6px 10px"><table><tbody>
       <tr><td>Rutines</td><td class="r">${tp.length?tp.length+" · propera: "+esc(nx?nx.name:"–"):"<a href='#rutines'>Cap · crea-les</a>"}</td></tr>
@@ -309,7 +312,9 @@ function peLoad(src,asNew){
     targets:Object.assign({kcal:null,p:null,c:null,g:null},d.targets||{}),meals:(d.meals&&d.meals.length?d.meals:[blankMeal(1)]),
     supTxt:(d.supplements||[]).map(x=>x.name+": "+x.txt).join("\n"),tipsTxt:(d.tips||[]).join("\n"),
     calc:Object.assign({sex:"h",age:30,cm:175,kg:null,pal:1.55},d.calc||{}),extra:d};
-  const lb=bwData().slice(-1)[0]; if(!pe.calc.kg&&lb) pe.calc.kg=lb.kg;
+  const ik=intakeDoc(); if(ik&&!d.calc){pe.calc.sex=ik.sex||"h"; pe.calc.age=ageFrom(ik.birth)||pe.calc.age; pe.calc.cm=ik.cm||pe.calc.cm; pe.calc.pal=ik.pal||pe.calc.pal; pe.calc.kg=ik.kg;
+    if(!d.phase) pe.phase=/greix$/.test(ik.goal||"")?"Definició":/múscul$/.test(ik.goal||"")?"Volum net":/Recomp/.test(ik.goal||"")?"Recomposició":"Manteniment"}
+  const lb=bwData().slice(-1)[0]; if(lb&&(!pe.calc.kg||!d.calc)) pe.calc.kg=lb.kg;
 }
 function calcTargets(){
   const c=pe.calc, kg=num(c.kg), cm=num(c.cm), age=num(c.age), pal=num(c.pal); if(!kg||!cm||!age||!pal) return null;
@@ -410,7 +415,7 @@ document.addEventListener("click",async e=>{
 /* ---------- compte del client: privacitat ---------- */
 function accExtra(){
   if(IS_COACH()) return `<button class="primary" id="acc-clients">Panell de clients</button><button id="acc-rut">Les meves rutines</button><button id="acc-pau">Les meves pautes</button>`;
-  if(IS_CLIENT()){return `<button id="acc-priv">Privacitat</button><button class="danger" id="acc-del">Esborrar el compte i totes les dades</button>`}
+  if(IS_CLIENT()){return `<button id="acc-fitxa">La meva fitxa</button><button id="acc-priv">Privacitat</button><button class="danger" id="acc-del">Esborrar el compte i totes les dades</button>`}
   return "";
 }
 async function accClick(b){
@@ -419,6 +424,7 @@ async function accClick(b){
     case "acc-rut": closeSheet(); location.hash="rutines"; return true;
     case "acc-pau": closeSheet(); pe=null; location.hash="pauta"; return true;
     case "acc-priv": closeSheet(); QStore.editConsent(); return true;
+    case "acc-fitxa": closeSheet(); fx=null; location.hash="fitxa"; return true;
     case "acc-del":
       if(b.dataset.c!=="1"){b.dataset.c="1";b.textContent="Segur? S'esborrarà tot i no es pot desfer";return true}
       if(b.dataset.c==="1"&&!b.dataset.c2){b.dataset.c2="1";b.textContent="Confirma definitivament";return true}
@@ -426,4 +432,90 @@ async function accClick(b){
       try{await QStore.deleteAccount()}catch(err){b.disabled=false;toast("No s'ha pogut esborrar: "+err.message)} return true;
   }
   return false;
+}
+
+/* ---------- FITXA INICIAL DEL CLIENT ----------
+   El client l'omple després d'acceptar el consentiment. Es desa a intake/inicial.
+   Preguntes de seguretat basades en el PAR-Q+ (2023): si en respon alguna amb "sí",
+   se li recomana consultar el metge abans de començar i l'entrenador ho veu marcat. */
+const INTAKE_GOALS=["Perdre greix","Guanyar múscul","Recomposició (perdre greix i guanyar múscul)","Millorar força o rendiment","Salut i benestar"];
+const INTAKE_EXP=["Mai he entrenat amb pesos","Menys de 6 mesos","6 mesos – 2 anys","2 – 5 anys","Més de 5 anys"];
+const INTAKE_ACT=[[1.4,"Sedentari: feina asseguda, menys de 5.000 passos"],[1.55,"Moderat: 7.000-10.000 passos"],[1.7,"Actiu: feina de peu o més de 10.000 passos"],[1.85,"Molt actiu: feina física"]];
+const PARQ=["Algun metge t'ha dit que tens un problema de cor o la pressió alta?",
+  "Sents dolor al pit en repòs, en el dia a dia o fent activitat física?",
+  "Has perdut l'equilibri per marejos o has perdut el coneixement els últims 12 mesos?",
+  "Tens alguna altra malaltia crònica diagnosticada o prens medicació per a alguna?",
+  "Tens algun problema d'ossos, articulacions o tous (múscul, lligament, tendó) que pugui empitjorar amb l'exercici?",
+  "Algun metge t'ha dit que només facis activitat física supervisada?"];
+const intakeDoc=()=>(S.intake||[]).find(x=>x.id==="inicial")||null;
+const ageFrom=b=>{if(!b) return null; const d=new Date(b), n=new Date(); let a=n.getFullYear()-d.getFullYear(); if(n<new Date(n.getFullYear(),d.getMonth(),d.getDate())) a--; return a};
+let fx=null, fxEdit=false;
+function needIntake(){ return IS_CLIENT()&&!CV()&&!!(QStore.lastSync||QStore.synced)&&ready.intake&&!intakeDoc() }
+function renderFitxa(){
+  const el=$("#v-fitxa"); const d=intakeDoc();
+  if(!fx) fx=JSON.parse(JSON.stringify(d||{sex:"",birth:"",cm:null,kg:null,goal:"",exp:"",days:3,minutes:60,place:"Gimnàs",pal:1.55,injuries:"",medical:"",parq:PARQ.map(()=>null),allergies:"",dislikes:"",meals:4,trainTime:"",notes:""}));
+  if(!fx.parq||fx.parq.length!==PARQ.length) fx.parq=PARQ.map((_,i)=>(fx.parq||[])[i]??null);
+  const sel=(k,arr)=>`<select data-fx="${k}"><option value="">Tria…</option>${arr.map(o=>{const v=Array.isArray(o)?o[0]:o,l=Array.isArray(o)?o[1]:o;return `<option value="${esc(v)}" ${String(fx[k])===String(v)?"selected":""}>${esc(l)}</option>`}).join("")}</select>`;
+  const yn=i=>`<div style="display:flex;gap:8px">${[["no","No"],["si","Sí"]].map(([v,l])=>{const on=fx.parq[i]===v;return `<button type="button" data-pq="${i}|${v}" aria-pressed="${on}" style="flex:1;height:44px;border-radius:12px;font-weight:700;font-size:15px;border:1.5px solid ${on?"var(--accent)":"var(--line,#ccc)"};background:${on?"var(--accent)":"transparent"};color:${on?"#fff":"var(--ink,inherit)"}">${l}</button>`}).join("")}</div>`;
+  el.innerHTML=`<div class="stack"><div class="vhead"><span class="lbl">${d?"Pots actualitzar-la quan vulguis":"Abans de començar"}</span><h1>La teva fitxa</h1></div>
+    ${d?"":`<p class="sub">Amb aquestes respostes el teu entrenador et prepara les rutines i la pauta. Són 3 minuts.</p>`}
+    <div class="card stack"><span class="lbl">Dades bàsiques</span>
+      <div class="row"><label class="f"><span class="lbl">Sexe</span><select data-fx="sex"><option value="">Tria…</option><option value="h" ${fx.sex==="h"?"selected":""}>Home</option><option value="d" ${fx.sex==="d"?"selected":""}>Dona</option></select></label>
+        <label class="f"><span class="lbl">Data de naixement</span><input type="date" data-fx="birth" value="${esc(fx.birth||"")}"></label></div>
+      <div class="row"><label class="f"><span class="lbl">Alçada (cm)</span><input data-fx="cm" inputmode="numeric" value="${esc(fx.cm??"")}"></label>
+        <label class="f"><span class="lbl">Pes actual (kg)</span><input data-fx="kg" inputmode="decimal" value="${esc(fin(fx.kg))}"></label></div></div>
+    <div class="card stack"><span class="lbl">Objectiu i experiència</span>
+      <label class="f"><span class="lbl">Objectiu principal</span>${sel("goal",INTAKE_GOALS)}</label>
+      <label class="f"><span class="lbl">Experiència entrenant amb pesos</span>${sel("exp",INTAKE_EXP)}</label>
+      <div class="row"><label class="f"><span class="lbl">Dies per setmana</span>${sel("days",[2,3,4,5,6])}</label>
+        <label class="f"><span class="lbl">Minuts per sessió</span>${sel("minutes",[45,60,75,90])}</label></div>
+      <div class="row"><label class="f"><span class="lbl">On entrenes</span>${sel("place",["Gimnàs","Casa","Tots dos"])}</label>
+        <label class="f"><span class="lbl">Hora habitual</span>${sel("trainTime",["Matí","Migdia","Tarda","Vespre","Variable"])}</label></div>
+      <label class="f"><span class="lbl">Activitat del dia a dia (sense comptar l'entrenament)</span>${sel("pal",INTAKE_ACT)}</label></div>
+    <div class="card stack"><span class="lbl">Salut</span>
+      ${PARQ.map((q,i)=>`<div class="stack" style="gap:6px"><span style="font-size:14px">${esc(q)}</span>${yn(i)}</div>`).join("")}
+      <label class="f"><span class="lbl">Lesions o molèsties actuals o recents</span><textarea data-fx="injuries" placeholder="Cap, o explica-ho breument">${esc(fx.injuries||"")}</textarea></label>
+      <label class="f"><span class="lbl">Altres coses de salut que hagi de saber</span><textarea data-fx="medical">${esc(fx.medical||"")}</textarea></label>
+      ${fx.parq.includes("si")?`<div class="note">Com que has respost "sí" a alguna pregunta, et recomanem consultar el metge abans de començar o d'augmentar la intensitat. El teu entrenador ho tindrà en compte.</div>`:""}</div>
+    <div class="card stack"><span class="lbl">Alimentació</span>
+      <label class="f"><span class="lbl">Al·lèrgies o intoleràncies</span><input data-fx="allergies" value="${esc(fx.allergies||"")}" placeholder="Cap"></label>
+      <label class="f"><span class="lbl">Aliments que no menges o no t'agraden</span><input data-fx="dislikes" value="${esc(fx.dislikes||"")}"></label>
+      <label class="f"><span class="lbl">Àpats al dia que et van bé</span>${sel("meals",[3,4,5])}</label></div>
+    <label class="f"><span class="lbl">Alguna cosa més?</span><textarea data-fx="notes">${esc(fx.notes||"")}</textarea></label>
+    <div class="btns"><button class="good" id="fx-save" style="height:52px">${d?"Desar els canvis":"Enviar la fitxa"}</button>${d?`<button id="fx-cancel">Tornar</button>`:""}</div>
+    <p class="sub" id="fx-msg" style="min-height:20px"></p></div>`;
+}
+document.addEventListener("input",e=>{const k=e.target.dataset&&e.target.dataset.fx; if(k&&fx) fx[k]=["cm","kg","days","minutes","meals","pal"].includes(k)?num(e.target.value):e.target.value});
+document.addEventListener("change",e=>{const k=e.target.dataset&&e.target.dataset.fx; if(k&&fx) fx[k]=["cm","kg","days","minutes","meals","pal"].includes(k)?num(e.target.value):e.target.value});
+document.addEventListener("click",async e=>{
+  if(!e.target.closest("#v-fitxa")) return; const b=e.target.closest("button"); if(!b) return;
+  if(b.dataset.pq){const [i,v]=b.dataset.pq.split("|"); fx.parq[+i]=v; renderFitxa(); return}
+  if(b.id==="fx-cancel"){fx=null; location.hash="avui"; return}
+  if(b.id==="fx-save"){
+    const m=t=>{$("#fx-msg").textContent=t};
+    if(!fx.sex||!fx.birth||!fx.cm||!fx.kg||!fx.goal||!fx.exp||!fx.pal){m("Falten dades: sexe, naixement, alçada, pes, objectiu, experiència i activitat");return}
+    if(fx.parq.some(x=>!x)){m("Respon totes les preguntes de salut");return}
+    const a=ageFrom(fx.birth); if(a==null||a<18||a>100){m("Revisa la data de naixement");return}
+    if(fx.cm<120||fx.cm>230||fx.kg<35||fx.kg>250){m("Revisa l'alçada i el pes");return}
+    b.disabled=true;
+    try{
+      const doc={...fx,parqAlert:fx.parq.includes("si"),updatedAt:new Date().toISOString()}; if(!intakeDoc()) doc.createdAt=doc.updatedAt;
+      await db.collection("intake").doc("inicial").set(doc);
+      const t=todayISO(); if(!S.bodyweight.some(x=>x.date===t)) await db.collection("bodyweight").doc(t).set({date:t,kg:fx.kg});
+      fx=null; toast("Fitxa enviada al teu entrenador"); location.hash="avui";
+    }catch(err){b.disabled=false; m("No s'ha pogut desar: "+err.message)}
+  }
+});
+/* Fitxa vista per l'entrenador (a Resum) */
+function intakeCard(){
+  const d=intakeDoc(); if(!d) return `<div class="note">El client encara no ha omplert la fitxa inicial.</div>`;
+  const pal=(INTAKE_ACT.find(x=>+x[0]===+d.pal)||[])[1]||"";
+  const yes=(d.parq||[]).map((v,i)=>v==="si"?PARQ[i]:null).filter(Boolean);
+  const row=(k,v)=>v?`<tr><td>${k}</td><td class="r">${esc(v)}</td></tr>`:"";
+  return `<details class="card" ${yes.length?"open":""}><summary>Fitxa inicial${yes.length?' <span class="pill w">Salut: revisar</span>':""}</summary><div class="tw"><table><tbody>
+    ${row("Sexe · edat",(d.sex==="d"?"Dona":"Home")+" · "+ageFrom(d.birth)+" anys")}${row("Alçada · pes inicial",d.cm+" cm · "+fn(d.kg,1)+" kg")}
+    ${row("Objectiu",d.goal)}${row("Experiència",d.exp)}${row("Disponibilitat",d.days+" dies · "+d.minutes+" min · "+(d.place||""))}${row("Hora",d.trainTime)}
+    ${row("Activitat diària",pal)}${row("Lesions",d.injuries)}${row("Salut",d.medical)}${row("Al·lèrgies",d.allergies)}${row("No menja",d.dislikes)}${row("Àpats",d.meals)}${row("Notes",d.notes)}
+  </tbody></table></div>${yes.length?`<div class="note"><b>Ha respost "sí" a:</b><ul class="tips">${yes.map(q=>`<li>${esc(q)}</li>`).join("")}</ul>Recomana-li revisió mèdica abans d'entrenar intens.</div>`:""}
+  <p class="sub" style="font-size:12px">Actualitzada: ${esc(fdate(String(d.updatedAt||"").slice(0,10)))}</p></details>`;
 }

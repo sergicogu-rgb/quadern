@@ -11,7 +11,7 @@
   const L={get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}},del(k){try{localStorage.removeItem(k)}catch(e){}}};
 
   /* Col·leccions: què registra el client i què prepara l'entrenador */
-  const CLIENT_COLS=["sessions","bodyweight","kcallog","drafts"];
+  const CLIENT_COLS=["sessions","bodyweight","kcallog","drafts","intake"];
   const COACH_COLS=["exercises","templates","targets","programs","nutrition","reports"];
   const CONSENT_VERSION="v2-2026-11";
   const CONTROLLER={name:"Sergi Coma",role:"entrenador personal",contact:"sergicogu@gmail.com"};
