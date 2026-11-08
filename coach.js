@@ -80,7 +80,7 @@ function renderClients(){
         <div class="tile"><div class="lbl">Pes</div><div class="v">${c.last_weight!=null?fn(+c.last_weight,1):"–"}<small> kg</small></div></div>
         <div class="tile"><div class="lbl">Kcal 7 d</div><div class="v">${c.kcal_7d!=null?fn(+c.kcal_7d,0):"–"}<small> · ${c.kcal_days_7d||0}/7</small></div></div></div>
       <div class="sub num" style="font-size:13px">Últim entrenament: ${esc(ago(c.last_session))} · últim pes: ${esc(ago(c.last_weight_date))}</div>
-      <div class="btns" style="margin:0"><button class="primary" data-open="${esc(c.id)}">Obrir</button>
+      <div class="btns" style="margin:0"><button class="primary" data-open="${esc(c.id)}">Obrir</button>${c.consent_at?"":`<button data-resend="${esc(c.email)}" data-name="${esc(c.name||"")}">Reenviar l'accés</button>`}
         <button class="danger" data-unlink="${esc(c.id)}">${unlinkConfirm===c.id?"Confirma: desvincular":"Desvincular"}</button></div></article>`;
   });
   if(ovwInv.length) h+=`<div class="card tw" style="padding:6px 10px"><table><thead><tr><th>Invitacions pendents</th><th class="r"></th></tr></thead><tbody>
@@ -93,7 +93,7 @@ async function sendInvite(email,name,b){
   if(b) b.disabled=true; invLink=null;
   try{
     const r=await QStore.fn({action:"invite",email,name});
-    if(r.existing) toast("Ja tenia compte: ara és client teu");
+    if(r.existing&&r.emailed) toast("Accés reenviat a "+email);
     else if(r.emailed) toast("Invitació enviada a "+email);
     else if(r.link){invLink=r.link; toast("Correu no enviat: comparteix l'enllaç")}
     else toast("No s'ha pogut convidar: "+(r.reason||"error"));

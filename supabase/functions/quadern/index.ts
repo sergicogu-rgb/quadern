@@ -34,9 +34,17 @@ Deno.serve(async (req) => {
       if (prof) {
         if (prof.coach_id && prof.coach_id !== user.id) return json({ error: "Aquest compte ja té un altre entrenador" }, 409);
         if (prof.id === user.id) return json({ error: "No et pots convidar a tu mateix" }, 400);
-        await admin.from("profiles").update({ coach_id: user.id }).eq("id", prof.id);
-        await admin.from("invites").upsert({ email, coach_id: user.id, name, accepted_at: new Date().toISOString(), user_id: prof.id });
-        return json({ ok: true, existing: true });
+        const already = prof.coach_id === user.id;
+        if (!already) {
+          await admin.from("profiles").update({ coach_id: user.id }).eq("id", prof.id);
+          await admin.from("invites").upsert({ email, coach_id: user.id, name, accepted_at: new Date().toISOString(), user_id: prof.id });
+        }
+        // Torna a enviar l'accés: correu per crear (o canviar) la contrasenya
+        const pub = createClient(URL_, ANON, { auth: { persistSession: false } });
+        const r = await pub.auth.resetPasswordForEmail(email, { redirectTo: APP });
+        if (!r.error) return json({ ok: true, existing: true, emailed: true });
+        const g = await admin.auth.admin.generateLink({ type: "recovery", email, options: { redirectTo: APP } });
+        return json({ ok: !g.error, existing: true, emailed: false, link: g.error ? null : g.data.properties.action_link, reason: r.error.message });
       }
 
       await admin.from("invites").upsert({ email, coach_id: user.id, name, created_at: new Date().toISOString(), accepted_at: null, user_id: null });

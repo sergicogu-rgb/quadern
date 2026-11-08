@@ -1,5 +1,5 @@
 /* Quadern · funciona sense connexió: guarda l'app i les llibreries al mòbil */
-const V="quadern-v6";
+const V="quadern-v7";
 const CORE=["./","index.html","store.js","coach.js","manifest.webmanifest","icon-192.png","icon-512.png","apple-touch-icon.png",
  "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js","https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js"];
 self.addEventListener("install",e=>{e.waitUntil(caches.open(V).then(c=>Promise.all(CORE.map(u=>c.add(u).catch(()=>{})))).then(()=>self.skipWaiting()))});
