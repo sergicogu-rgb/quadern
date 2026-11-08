@@ -1,21 +1,43 @@
 /* Quadern · capa de dades local-primer amb sincronització a Supabase.
    Imita l'API que feia servir l'app dins de Claude (collection/doc/set/update/delete/get/onSnapshot)
-   perquè la resta del codi no canviï. Tot s'escriu primer al mòbil i es puja quan hi ha connexió. */
+   perquè la resta del codi no canviï. Tot s'escriu primer al mòbil i es puja quan hi ha connexió.
+   Multiusuari: l'entrenador pot "obrir" un client (Q.viewAs) i llavors llegeix i escriu les dades d'aquell client. */
 (function(){
   const SB_URL="https://tsgvbxvrufuqlbzekmwd.supabase.co";
   const SB_KEY="sb_publishable_CIQ_0caYmCUsbustLjvTfg_qZR4At_K";
-  const sb=window.supabase?window.supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}}):null;
-  const L={get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
-  const Q={sb,uid:null,email:null,cache:L.get("q_cache",{}),out:L.get("q_out",[]),lastSync:L.get("q_last",null),synced:false,listeners:{},busy:false,pulling:false};
+  const APP_URL=location.origin+location.pathname;
+  // Abans que Supabase llegeixi l'enllaç del correu: és una invitació o un canvi de contrasenya?
+  const AUTH_TYPE=(/[#&?]type=(invite|recovery|magiclink|signup)/.exec(location.hash+location.search)||[])[1]||null;
+  const sb=window.supabase?window.supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,flowType:"implicit"}}):null;
+  const L={get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}},del(k){try{localStorage.removeItem(k)}catch(e){}}};
+
+  /* Col·leccions: què registra el client i què prepara l'entrenador */
+  const CLIENT_COLS=["sessions","bodyweight","kcallog","drafts"];
+  const COACH_COLS=["exercises","templates","targets","programs","nutrition","reports"];
+  const CONSENT_VERSION="v1-2026-11";
+  const CONTROLLER={name:"Sergi Coma",role:"entrenador personal",contact:"sergicogu@gmail.com"};
+
+  const Q={sb,uid:null,email:null,target:null,viewing:null,profile:null,consent:null,
+    cache:L.get("q_cache",{}),out:L.get("q_out",[]),lastSync:L.get("q_last",null),synced:false,listeners:{},busy:false,pulling:false,
+    CLIENT_COLS,COACH_COLS,CONSENT_VERSION,CONTROLLER};
   window.QStore=Q;
-  const save=()=>{L.set("q_cache",Q.cache);L.set("q_out",Q.out);L.set("q_last",Q.lastSync)};
-  const emit=col=>{(Q.listeners[col]||[]).forEach(f=>{try{f()}catch(e){console.error(e)}});(Q.listeners["*"]||[]).forEach(f=>f())};
+  const ck=()=>Q.viewing?"q_cache_"+Q.viewing.id:"q_cache", lk=()=>Q.viewing?"q_last_"+Q.viewing.id:"q_last";
+  const save=()=>{L.set(ck(),Q.cache);L.set("q_out",Q.out);L.set(lk(),Q.lastSync)};
+  const emit=col=>{(Q.listeners[col]||[]).forEach(f=>{try{f()}catch(e){console.error(e)}});(Q.listeners["*"]||[]).forEach(f=>{try{f()}catch(e){}})};
+  const emitAll=()=>Object.keys(Q.listeners).forEach(c=>{if(c!=="*"&&c!=="_out")emit(c)});
   const genId=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,10);
+  Q.canWrite=col=>Q.viewing?COACH_COLS.includes(col):(Q.isCoach()||CLIENT_COLS.includes(col));
+  Q.isCoach=()=>!!(Q.profile&&Q.profile.role==="coach");
+  Q.isClient=()=>!!(Q.profile&&Q.profile.role!=="coach");
   function write(col,id,data){
+    if(Q.profile&&!Q.canWrite(col)){
+      const e=new Error(Q.viewing?"Això només ho pot registrar el client":"Això ho prepara el teu entrenador"); e.readonly=true; return Promise.reject(e);
+    }
+    const u=Q.target||Q.uid;
     Q.cache[col]=Q.cache[col]||{};
     if(data==null) delete Q.cache[col][id]; else Q.cache[col][id]=data;
-    Q.out=Q.out.filter(w=>!(w.col===col&&w.id===id));
-    Q.out.push({col,id,data:data==null?null:data,deleted:data==null,v:genId()});
+    Q.out=Q.out.filter(w=>!(w.col===col&&w.id===id&&(w.u||Q.uid)===u));
+    Q.out.push({u,col,id,data:data==null?null:data,deleted:data==null,v:genId()});
     save(); emit(col); flush();
     return Promise.resolve();
   }
@@ -45,9 +67,18 @@
     try{
       while(Q.out.length){
         const batch=Q.out.slice(0,200);
-        const rows=batch.map(w=>({user_id:Q.uid,col:w.col,id:w.id,data:w.data,deleted:w.deleted}));
+        const rows=batch.map(w=>({user_id:w.u||Q.uid,col:w.col,id:w.id,data:w.data,deleted:w.deleted}));
         const {error}=await sb.from("docs").upsert(rows,{onConflict:"user_id,col,id"});
-        if(error) throw error;
+        if(error){
+          // Permís denegat (p. ex. consentiment retirat): descarta el que no es pot pujar perquè no bloquegi la resta
+          if(/row-level security|permission/i.test(error.message)&&batch.length===1){Q.out=Q.out.filter(w=>w.v!==batch[0].v);save();continue}
+          if(/row-level security|permission/i.test(error.message)){ // prova d'un en un
+            for(const w of batch){const r=await sb.from("docs").upsert([{user_id:w.u||Q.uid,col:w.col,id:w.id,data:w.data,deleted:w.deleted}],{onConflict:"user_id,col,id"});
+              if(!r.error||/row-level security|permission/i.test(r.error.message)){Q.out=Q.out.filter(x=>x.v!==w.v)} else throw r.error}
+            save(); continue;
+          }
+          throw error;
+        }
         const done=new Set(batch.map(w=>w.v)); Q.out=Q.out.filter(w=>!done.has(w.v)); save();
       }
     }catch(e){console.warn("Sincronització pendent:",e.message||e)}
@@ -55,27 +86,47 @@
   }
   async function pull(){
     if(!sb||!Q.uid||Q.pulling||navigator.onLine===false) return; Q.pulling=true;
+    const who=Q.target||Q.uid;
     try{
       let from=0,max=Q.lastSync,changed=new Set();
       for(;;){
-        let q=sb.from("docs").select("col,id,data,deleted,updated_at").eq("user_id",Q.uid).order("updated_at",{ascending:true}).range(from,from+999);
+        let q=sb.from("docs").select("col,id,data,deleted,updated_at").eq("user_id",who).order("updated_at",{ascending:true}).range(from,from+999);
         if(Q.lastSync) q=q.gt("updated_at",Q.lastSync);
         const {data,error}=await q; if(error) throw error;
+        if((Q.target||Q.uid)!==who) break; // s'ha canviat de client mentre carregava
         for(const r of data){
-          if(Q.out.some(w=>w.col===r.col&&w.id===r.id)) continue;
+          if(Q.out.some(w=>(w.u||Q.uid)===who&&w.col===r.col&&w.id===r.id)) continue;
           Q.cache[r.col]=Q.cache[r.col]||{};
           if(r.deleted||r.data==null) delete Q.cache[r.col][r.id]; else Q.cache[r.col][r.id]=r.data;
           changed.add(r.col); if(!max||r.updated_at>max) max=r.updated_at;
         }
-        if(data.length<1000) break; from+=1000;
+        if(data.length<1000){ Q.lastSync=max; Q.synced=true; save(); changed.forEach(emit); if(!changed.size) emitAll(); break }
+        from+=1000;
       }
-      Q.lastSync=max; Q.synced=true; save(); changed.forEach(emit); if(!changed.size) Object.keys(Q.listeners).forEach(emit);
     }catch(e){console.warn("No s'ha pogut actualitzar:",e.message||e)}
     Q.pulling=false;
   }
   Q.flush=flush; Q.pull=pull; Q.sync=async()=>{await flush();await pull()};
   Q.pendingCount=()=>Q.out.filter(w=>w.col!=="drafts").length;
   Q.on=(col,f)=>{(Q.listeners[col]=Q.listeners[col]||[]).push(f)};
+
+  /* Entrenador: obrir les dades d'un client i tornar a les pròpies */
+  function switchTo(v){
+    save();
+    Q.viewing=v; Q.target=v?v.id:null;
+    Q.cache=L.get(ck(),{}); Q.lastSync=L.get(lk(),null); Q.synced=false; Q.pulling=false;
+    document.body.classList.toggle("cv",!!v);
+    emit("_view"); emitAll(); pull();
+  }
+  Q.viewAs=c=>{ if(!Q.isCoach()) return; switchTo({id:c.id,name:c.name||c.email,email:c.email}) };
+  Q.viewSelf=()=>switchTo(null);
+  Q.forgetClient=id=>{L.del("q_cache_"+id);L.del("q_last_"+id)};
+  Q.rpc=async(fn,args)=>{const {data,error}=await sb.rpc(fn,args||{}); if(error) throw error; return data};
+  Q.fn=async body=>{const {data,error}=await sb.functions.invoke("quadern",{body});
+    if(error){let m=error.message; try{const j=await error.context.json(); if(j&&j.error) m=j.error}catch(e){} throw new Error(m)} if(data&&data.error) throw new Error(data.error); return data};
+  /* Llegir directament col·leccions d'un altre usuari (per copiar rutines o pautes) */
+  Q.fetchCol=async(user,cols)=>{const {data,error}=await sb.from("docs").select("col,id,data").eq("user_id",user).in("col",cols).eq("deleted",false); if(error) throw error; return data};
+  Q.putDocs=async(user,rows)=>{const {error}=await sb.from("docs").upsert(rows.map(r=>({user_id:user,col:r.col,id:r.id,data:r.data,deleted:false})),{onConflict:"user_id,col,id"}); if(error) throw error};
 
   /* fotos */
   const assets={
@@ -132,58 +183,145 @@
   /* sessió */
   let dbResolve; const dbReady=new Promise(r=>dbResolve=r);
   const DB={collection};
+  let needPassword=AUTH_TYPE==="invite"||AUTH_TYPE==="recovery";
+  async function loadProfile(){
+    const {data:p,error}=await sb.from("profiles").select("id,name,role,coach_id,email").eq("id",Q.uid).maybeSingle();
+    if(error) throw error;
+    Q.profile=p; L.set("q_profile",p);
+    if(p&&p.role!=="coach"){
+      const {data:c}=await sb.from("consents").select("id,version,ai,accepted_at").eq("user_id",Q.uid).is("revoked_at",null).order("accepted_at",{ascending:false}).limit(1);
+      Q.consent=(c&&c[0])||null; L.set("q_consent",Q.consent);
+    } else Q.consent=null;
+  }
   async function onSession(session){
     if(!session){Q.uid=null;showLogin();return}
     if(Q.uid&&Q.uid!==session.user.id){Q.cache={};Q.out=[];Q.lastSync=null;save()}
-    Q.uid=session.user.id; Q.email=session.user.email; L.set("q_uid",Q.uid); hideLogin();
+    Q.uid=session.user.id; Q.email=session.user.email; L.set("q_uid",Q.uid);
     clearBadge();
+    if(needPassword){showPassword();return}
+    try{await loadProfile()}catch(e){Q.profile=L.get("q_profile",null);Q.consent=L.get("q_consent",null)}
+    if(gate()) return;
+    hideLogin();
     await Promise.race([Q.sync(),new Promise(r=>setTimeout(r,5000))]);
     dbResolve(DB);
   }
+  /* Abans d'entrar: client sense entrenador o sense consentiment → pantalla corresponent */
+  function gate(){
+    const p=Q.profile; if(!p||p.role==="coach") return false;
+    if(!p.coach_id){showNoCoach();return true}
+    if(!Q.consent){showConsent(false);return true}
+    return false;
+  }
   window.claude={use:async n=>n==="db"?dbReady:n==="assets"?assets:null};
-  // Sense connexió però amb sessió anterior: entra igualment amb les dades del mòbil
   const lastUid=L.get("q_uid",null);
-  if(!sb){ if(lastUid){Q.uid=lastUid;dbResolve(DB)} else showLogin(); }
+  const offlineEnter=()=>{Q.uid=lastUid;Q.profile=L.get("q_profile",null);Q.consent=L.get("q_consent",null);if(!gate())dbResolve(DB)};
+  if(!sb){ if(lastUid) offlineEnter(); else showLogin(); }
   else { sb.auth.getSession().then(({data})=>{
     if(data.session) onSession(data.session);
-    else if(lastUid&&navigator.onLine===false){Q.uid=lastUid;dbResolve(DB)}
+    else if(lastUid&&navigator.onLine===false) offlineEnter();
     else showLogin();
-  }).catch(()=>{ if(lastUid){Q.uid=lastUid;dbResolve(DB)} else showLogin() }); }
-  if(sb) sb.auth.onAuthStateChange((ev,session)=>{ if(ev==="SIGNED_IN"&&session&&Q.uid!==session.user.id) onSession(session); if(ev==="SIGNED_OUT"){Q.uid=null;showLogin()} });
+  }).catch(()=>{ if(lastUid) offlineEnter(); else showLogin() }); }
+  if(sb) sb.auth.onAuthStateChange((ev,session)=>{
+    if(ev==="PASSWORD_RECOVERY"){needPassword=true; if(session){Q.uid=session.user.id;Q.email=session.user.email} showPassword(); return}
+    if(ev==="SIGNED_IN"&&session&&Q.uid!==session.user.id) onSession(session);
+    if(ev==="SIGNED_OUT"){Q.uid=null;showLogin()} });
   window.addEventListener("online",()=>Q.sync());
   document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible") Q.sync(); else flush()});
   setInterval(()=>{if(document.visibilityState==="visible") Q.sync()},60000);
 
-  /* pantalla d'accés */
-  function showLogin(){
-    if(!document.body){document.addEventListener("DOMContentLoaded",showLogin,{once:true});return}
+  /* ---------- pantalles d'accés ---------- */
+  function screen(html){
+    if(!document.body){document.addEventListener("DOMContentLoaded",()=>screen(html),{once:true});return null}
     let el=document.getElementById("login");
     if(!el){el=document.createElement("div");el.id="login";document.body.appendChild(el)}
-    el.hidden=false;
-    el.innerHTML=`<div class="lgin"><div class="lgbrand">Quadern <i>d'entrenament</i></div>
-      <h1 id="lg-title">Entrar</h1>
+    el.hidden=false; el.scrollTop=0; el.innerHTML=`<div class="lgin"><div class="lgbrand">Quadern <i>d'entrenament</i></div>${html}</div>`; return el;
+  }
+  const $i=id=>document.getElementById(id);
+  const msgTo=id=>t=>{const m=$i(id);if(m)m.textContent=t};
+  function showLogin(){
+    if(!screen(`<h1 id="lg-title">Entrar</h1>
       <form id="lg-form" class="stack">
         <label class="f"><span class="lbl">Correu</span><input id="lg-email" type="email" autocomplete="email" required></label>
         <label class="f"><span class="lbl">Contrasenya</span><input id="lg-pass" type="password" autocomplete="current-password" minlength="6" required></label>
         <button class="primary" id="lg-go" style="height:52px;font-size:17px">Entrar</button>
-        <button type="button" class="plain" id="lg-mode">No tens compte? Crea'n un</button>
         <button type="button" class="plain" id="lg-reset" style="font-size:13px">He oblidat la contrasenya</button>
         <p class="sub" id="lg-msg" style="min-height:20px"></p>
-      </form></div>`;
-    if(!sb){el.querySelector("#lg-msg").textContent="Cal connexió a internet per entrar el primer cop.";}
-    let signup=false; const msg=t=>{document.getElementById("lg-msg").textContent=t};
-    document.getElementById("lg-mode").onclick=()=>{signup=!signup;document.getElementById("lg-title").textContent=signup?"Crear compte":"Entrar";document.getElementById("lg-go").textContent=signup?"Crear compte":"Entrar";document.getElementById("lg-mode").textContent=signup?"Ja tens compte? Entra":"No tens compte? Crea'n un";msg("")};
-    document.getElementById("lg-reset").onclick=async()=>{const e=document.getElementById("lg-email").value.trim();if(!e){msg("Escriu el teu correu primer");return}
-      const {error}=await sb.auth.resetPasswordForEmail(e,{redirectTo:location.origin+location.pathname});msg(error?error.message:"T'hem enviat un correu per canviar la contrasenya.")};
-    document.getElementById("lg-form").onsubmit=async ev=>{ev.preventDefault();const email=document.getElementById("lg-email").value.trim(),password=document.getElementById("lg-pass").value;
-      const b=document.getElementById("lg-go");b.disabled=true;msg(signup?"Creant el compte…":"Entrant…");
-      try{
-        if(signup){const {data,error}=await sb.auth.signUp({email,password,options:{emailRedirectTo:location.origin+location.pathname}});if(error)throw error;
-          if(!data.session) msg("Compte creat. Confirma'l des del correu que t'hem enviat i després entra aquí.");}
-        else{const {error}=await sb.auth.signInWithPassword({email,password});if(error)throw error}
-      }catch(e){msg(/Invalid login/i.test(e.message)?"Correu o contrasenya incorrectes.":/not confirmed/i.test(e.message)?"Encara has de confirmar el compte des del correu.":e.message)}
+        <p class="sub" style="font-size:13px">L'accés és per invitació del teu entrenador. Si t'ha convidat, obre l'enllaç del correu.</p>
+      </form>`)){document.addEventListener("DOMContentLoaded",showLogin,{once:true});return}
+    const msg=msgTo("lg-msg");
+    if(!sb) msg("Cal connexió a internet per entrar el primer cop.");
+    $i("lg-reset").onclick=async()=>{const e=$i("lg-email").value.trim();if(!e){msg("Escriu el teu correu primer");return}
+      const {error}=await sb.auth.resetPasswordForEmail(e,{redirectTo:APP_URL});msg(error?error.message:"T'hem enviat un correu per canviar la contrasenya.")};
+    $i("lg-form").onsubmit=async ev=>{ev.preventDefault();const email=$i("lg-email").value.trim(),password=$i("lg-pass").value;
+      const b=$i("lg-go");b.disabled=true;msg("Entrant…");
+      try{const {error}=await sb.auth.signInWithPassword({email,password});if(error)throw error}
+      catch(e){msg(/Invalid login/i.test(e.message)?"Correu o contrasenya incorrectes.":/not confirmed/i.test(e.message)?"Encara has de confirmar el compte des del correu.":e.message)}
       b.disabled=false};
   }
+  function showPassword(){
+    if(!screen(`<h1>${AUTH_TYPE==="recovery"?"Nova contrasenya":"Benvingut/da"}</h1>
+      <p class="sub">${AUTH_TYPE==="recovery"?"Escriu la contrasenya nova.":"Crea una contrasenya per entrar a l'app a partir d'ara."}</p>
+      <form id="pw-form" class="stack">
+        <label class="f"><span class="lbl">Contrasenya (mínim 8 caràcters)</span><input id="pw-1" type="password" autocomplete="new-password" minlength="8" required></label>
+        <label class="f"><span class="lbl">Repeteix-la</span><input id="pw-2" type="password" autocomplete="new-password" minlength="8" required></label>
+        <button class="primary" id="pw-go" style="height:52px;font-size:17px">Desar i continuar</button>
+        <p class="sub" id="pw-msg" style="min-height:20px"></p></form>`)) return;
+    const msg=msgTo("pw-msg");
+    $i("pw-form").onsubmit=async ev=>{ev.preventDefault();const a=$i("pw-1").value,b=$i("pw-2").value;
+      if(a!==b){msg("Les dues contrasenyes no coincideixen");return}
+      $i("pw-go").disabled=true;msg("Desant…");
+      const {data,error}=await sb.auth.updateUser({password:a});
+      if(error){msg(error.message);$i("pw-go").disabled=false;return}
+      needPassword=false; history.replaceState(null,"",APP_URL);
+      const {data:s}=await sb.auth.getSession(); Q.uid=null; onSession(s.session)};
+  }
+  function showNoCoach(){
+    if(!screen(`<h1>Compte sense entrenador</h1><p class="sub">Aquesta app funciona per invitació. Demana al teu entrenador que et convidi amb aquest correu: <b>${esc(Q.email||"")}</b>.</p>
+      <button class="primary" id="nc-retry" style="height:52px">Ja m'ha convidat</button><button class="plain" id="nc-out">Tancar sessió</button>`)) return;
+    $i("nc-retry").onclick=async()=>{await loadProfile().catch(()=>{}); if(!gate()){hideLogin();await Q.sync();dbResolve(DB)}};
+    $i("nc-out").onclick=()=>Q.signOut();
+  }
+  function esc(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+  /* ---------- Consentiment RGPD ---------- */
+  Q.consentText=()=>`
+    <div class="card stack" style="font-size:14px;line-height:1.45">
+      <p><b>Responsable:</b> ${esc(CONTROLLER.name)}, ${esc(CONTROLLER.role)}. Contacte: ${esc(CONTROLLER.contact)}.</p>
+      <p><b>Quines dades:</b> nom i correu; entrenaments (exercicis, càrregues, repeticions i notes); pes corporal; calories diàries i pauta d'alimentació. El pes, l'alimentació i les notes sobre molèsties o salut són <b>dades de salut</b> (categoria especial, art. 9 RGPD).</p>
+      <p><b>Per a què:</b> planificar i seguir el teu entrenament i la teva alimentació i preparar-te un informe setmanal. No es fan servir per a res més, no es venen ni es cedeixen a ningú.</p>
+      <p><b>Base legal:</b> el teu consentiment explícit (art. 6.1.a i 9.2.a RGPD i Llei orgànica 3/2018).</p>
+      <p><b>On es guarden:</b> a Supabase, amb servidors a la UE (París), que actua com a encarregat del tractament. L'app s'allotja a GitHub Pages, que no guarda dades teves.</p>
+      <p><b>Anàlisi amb IA (opcional):</b> si ho acceptes, l'entrenador fa servir Claude (Anthropic, EUA) per analitzar les teves dades i redactar l'informe setmanal. Això implica una transferència internacional de dades. Si no ho acceptes, tens igualment l'informe automàtic de l'app.</p>
+      <p><b>Quant de temps:</b> mentre siguis client. Si esborres el compte, s'eliminen totes les teves dades.</p>
+      <p><b>Els teus drets:</b> accés, rectificació, supressió, oposició, limitació i portabilitat, i retirar el consentiment quan vulguis. Des de ⚙︎ pots descarregar totes les teves dades, canviar l'opció d'IA o esborrar el compte. També pots escriure a ${esc(CONTROLLER.contact)}. Si creus que no es respecten, pots reclamar a l'Agència Espanyola de Protecció de Dades (aepd.es).</p>
+    </div>`;
+  function showConsent(editing){
+    const cur=Q.consent;
+    if(!screen(`<h1>Protecció de dades</h1><p class="sub">Abans de començar, llegeix com es tracten les teves dades.</p>${Q.consentText()}
+      <form id="cs-form" class="stack">
+        <label class="chkl"><input type="checkbox" id="cs-adult" ${editing?"checked disabled":""} required> Tinc 18 anys o més.</label>
+        <label class="chkl"><input type="checkbox" id="cs-health" ${editing?"checked disabled":""} required> Consenteixo expressament el tractament de les meves dades de salut per a aquestes finalitats.</label>
+        <label class="chkl"><input type="checkbox" id="cs-ai" ${cur&&cur.ai?"checked":""}> Opcional: accepto l'anàlisi de les meves dades amb IA (Claude, Anthropic).</label>
+        <button class="primary" id="cs-go" style="height:52px;font-size:17px">${editing?"Desar":"Acceptar i continuar"}</button>
+        <button type="button" class="plain" id="cs-no">${editing?"Tornar":"No accepto"}</button>
+        <p class="sub" id="cs-msg" style="min-height:20px"></p></form>`)) return;
+    const msg=msgTo("cs-msg");
+    $i("cs-no").onclick=()=>{ if(editing){hideLogin();return} msg("Sense el consentiment no es pot fer servir l'app. Pots tancar la sessió o acceptar-lo."); const b=$i("cs-no"); if(b.dataset.c){Q.signOut();return} b.dataset.c="1"; b.textContent="Tancar sessió"; };
+    $i("cs-form").onsubmit=async ev=>{ev.preventDefault();
+      const adult=$i("cs-adult").checked, health=$i("cs-health").checked, ai=$i("cs-ai").checked;
+      if(!adult||!health){msg("Cal marcar les dues primeres caselles");return}
+      $i("cs-go").disabled=true; msg("Desant…");
+      try{
+        if(cur){const r=await sb.from("consents").update({revoked_at:new Date().toISOString()}).eq("id",cur.id); if(r.error) throw r.error}
+        const {data,error}=await sb.from("consents").insert({user_id:Q.uid,version:CONSENT_VERSION,health,adult,ai,user_agent:navigator.userAgent.slice(0,200)}).select("id,version,ai,accepted_at").single();
+        if(error) throw error;
+        Q.consent=data; L.set("q_consent",data); hideLogin();
+        if(!editing){await Promise.race([Q.sync(),new Promise(r=>setTimeout(r,5000))]); dbResolve(DB)}
+        emit("_view");
+      }catch(e){msg("No s'ha pogut desar: "+e.message);$i("cs-go").disabled=false}};
+  }
+  Q.editConsent=()=>showConsent(true);
+  Q.deleteAccount=async()=>{await Q.fn({action:"delete_account"}); await sb.auth.signOut().catch(()=>{}); localStorage.clear(); location.replace(APP_URL)};
   function hideLogin(){const el=document.getElementById("login");if(el)el.hidden=true}
-  Q.signOut=async()=>{await flush();if(sb)await sb.auth.signOut();Q.cache={};Q.out=[];Q.lastSync=null;save();localStorage.removeItem("draft");localStorage.removeItem("q_uid");location.reload()};
+  Q.signOut=async()=>{await flush();if(sb)await sb.auth.signOut();
+    Object.keys(localStorage).filter(k=>/^q_|^draft$|^pend$/.test(k)).forEach(k=>L.del(k)); location.reload()};
 })();
