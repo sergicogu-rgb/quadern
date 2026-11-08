@@ -39,7 +39,21 @@ Deno.serve(async (req) => {
           await admin.from("profiles").update({ coach_id: user.id }).eq("id", prof.id);
           await admin.from("invites").upsert({ email, coach_id: user.id, name, accepted_at: new Date().toISOString(), user_id: prof.id });
         }
-        // Torna a enviar l'accés: correu per crear (o canviar) la contrasenya
+        // Client que encara no ha començat (sense consentiment ni dades): es torna a convidar de zero,
+        // perquè rebi el correu de benvinguda en lloc del de canviar contrasenya.
+        if (already) {
+          const { count: nc } = await admin.from("consents").select("id", { count: "exact", head: true }).eq("user_id", prof.id);
+          const { count: nd } = await admin.from("docs").select("id", { count: "exact", head: true }).eq("user_id", prof.id);
+          if (!nc && !nd) {
+            await admin.auth.admin.deleteUser(prof.id);
+            await admin.from("invites").upsert({ email, coach_id: user.id, name, created_at: new Date().toISOString(), accepted_at: null, user_id: null });
+            const inv = await admin.auth.admin.inviteUserByEmail(email, { redirectTo: APP, data: { name, invited_by: me.name } });
+            if (!inv.error) return json({ ok: true, emailed: true, reinvited: true });
+            const g0 = await admin.auth.admin.generateLink({ type: "invite", email, options: { redirectTo: APP } });
+            return json({ ok: !g0.error, emailed: false, link: g0.error ? null : g0.data.properties.action_link, reason: inv.error.message });
+          }
+        }
+        // Client que ja fa servir l'app: correu per crear (o canviar) la contrasenya
         const pub = createClient(URL_, ANON, { auth: { persistSession: false } });
         const r = await pub.auth.resetPasswordForEmail(email, { redirectTo: APP });
         if (!r.error) return json({ ok: true, existing: true, emailed: true });
