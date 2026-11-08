@@ -74,7 +74,7 @@ function renderClients(){
   else if(ovw==null) h+=`<div class="empty"><b>Carregant…</b></div>`;
   else if(!ovw.length) h+=`<div class="empty"><b>Encara no tens clients</b>Convida el primer amb el formulari de dalt.</div>`;
   else ovw.forEach(c=>{
-    const cons=(c.consent_at?`<span class="pill">RGPD ✓</span>`:`<span class="pill w">Consentiment pendent</span>`)+(c.consent_at&&!c.intake_done?`<span class="pill w">Fitxa pendent</span>`:"")+(c.intake_alert?`<span class="pill w">Salut: revisar</span>`:"")+(c.proposals_pending?`<span class="pill" style="background:var(--accent);color:#fff">🤖 ${c.proposals_pending} per revisar</span>`:"")+(c.consent_at&&!c.ai?`<span class="pill w">Falta acceptar IA</span>`:"");
+    const cons=(c.consent_at?`<span class="pill">RGPD ✓</span>`:`<span class="pill w">Consentiment pendent</span>`)+(c.consent_at&&!c.intake_done?`<span class="pill w">Fitxa pendent</span>`:"")+(c.intake_alert?`<span class="pill w">Salut: revisar</span>`:"")+(c.proposals_pending?`<span class="pill" style="background:var(--accent);color:#fff">🤖 ${c.proposals_pending} per revisar</span>`:"")+(c.consent_at&&!c.ai?`<span class="pill w">Falta acceptar IA</span>`:"")+(c.plan_pending?`<span class="pill" style="background:var(--warn,#c77700);color:#fff">🕒 Rutina per revisar${dueTxt(c.plan_due)}</span>`:"");
     h+=`<article class="card stack"><div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start">
       <div style="min-width:0"><h3 style="margin:0">${esc(c.name||c.email)}</h3><div class="sub" style="font-size:13px;overflow:hidden;text-overflow:ellipsis">${esc(c.email||"")}</div></div>
       <div class="ph" style="justify-content:flex-end">${cons}</div></div>
@@ -185,6 +185,7 @@ function renderResum(){
   const el=$("#v-resum"); const v=QStore.viewing||{}; const tp=tplsSorted(), nx=nextTemplate(tp), P=activePauta(), last=sessionsSorted()[0];
   const bw=bwData(), lb=bw[bw.length-1], st=kcalStats();
   el.innerHTML=`<div class="stack"><div class="vhead"><span class="lbl">${esc(v.email||"")}</span><h1>${esc(v.name||"Client")}</h1></div>
+    ${planReviewCard()}
     ${proposalsCard()}
     ${intakeCard()}
     ${autoReportCard()}
@@ -204,7 +205,7 @@ const parseRanges=s=>String(s||"").split(/[,;·]/).map(x=>x.match(/(\d+)\s*[-–
 function renderRutines(){
   const el=$("#v-rutines"); const tp=tplsSorted();
   const exOpts=MUSCLES.map(m=>{const xs=S.exercises.filter(e=>(e.muscle||"Altres")===m).sort((a,b)=>a.name.localeCompare(b.name));return xs.length?`<optgroup label="${esc(m)}">${xs.map(e=>`<option value="${esc(e.id)}">${esc(e.name)}</option>`).join("")}</optgroup>`:""}).join("");
-  let h=`<div class="stack"><div class="vhead"><span class="lbl">${CV()?esc(QStore.viewing.name):"Les meves"} · en ordre de rotació</span><h1>Rutines</h1></div>`;
+  let h=`<div class="stack"><div class="vhead"><span class="lbl">${CV()?esc(QStore.viewing.name):"Les meves"} · en ordre de rotació</span><h1>Rutines</h1></div>${CV()?planReviewCard():""}`;
   if(!tp.length) h+=`<div class="empty"><b>Encara no hi ha rutines</b>Crea'n una o copia les d'un altre quadern.</div>`;
   tp.forEach((t,k)=>{
     h+=`<article class="card stack"><div class="row" style="align-items:center"><span class="big" style="font-size:22px;color:var(--muted);flex:0 0 auto">${k+1}</span>
@@ -572,4 +573,29 @@ document.addEventListener("click",async e=>{
     toast(ok?`Aprovada · ${r.docs||0} canvis aplicats`:"Proposta rebutjada");
     prop.for=null; await QStore.sync(); render();
   }catch(err){b.disabled=false; toast("No s'ha pogut: "+err.message)}
+});
+
+/* ---------- RUTINA PROVISIONAL (creada automàticament en enviar la fitxa) ----------
+   programs/inicial: {status: provisional|revisat, generatedAt, reviewDue, split, rir, flags[]} */
+const planDoc=()=>(S.programs||[]).find(x=>x.id==="inicial")||null;
+function dueTxt(iso){ if(!iso) return ""; const h=Math.round((new Date(iso)-new Date())/36e5); return h>0?` · queden ${h} h`:" · fora de termini" }
+function planBanner(){
+  if(CV()||!IS_CLIENT()) return ""; const p=planDoc(); if(!p) return "";
+  if(p.status==="provisional") return `<div class="note" style="line-height:1.45"><b>🕒 Rutina provisional</b><br>L'hem preparat amb la teva fitxa perquè puguis començar ja. El teu entrenador titulat la revisarà i personalitzarà en menys de 24 h.${p.rir?`<br><span class="sub" style="font-size:13px">${esc(p.rir)}.</span>`:""}</div>`;
+  if(p.status==="revisat"&&p.reviewedAt&&(Date.now()-new Date(p.reviewedAt))<3*864e5) return `<div class="note" style="line-height:1.45"><b>✅ Rutina revisada</b> pel teu entrenador titulat.</div>`;
+  return "";
+}
+function planReviewCard(){
+  if(!CV()) return ""; const p=planDoc(); if(!p||p.status!=="provisional") return "";
+  return `<article class="card stack" style="border:2px solid var(--accent)"><span class="lbl">Rutina provisional · automàtica${dueTxt(p.reviewDue)}</span>
+    <div><b>${esc(p.split||"")}</b> · ${esc(p.days||"")} dies · ${esc(p.exercisesPerSession||"")} exercicis per sessió</div>
+    <div class="sub" style="font-size:13px">${esc(p.rir||"")}</div>
+    ${(p.flags||[]).length?`<ul class="tips">${p.flags.map(f=>`<li>⚠️ ${esc(f)}</li>`).join("")}</ul>`:""}
+    <p class="sub" style="font-size:13px">El client ja la veu i pot començar. Revisa-la a <a href="#rutines">Rutines</a> (canvia exercicis, sèries o rangs si cal) i després valida-la: rebrà l'avís que l'ha revisada l'entrenador titulat.</p>
+    <button class="good" id="plan-ok" style="height:50px">✅ Validar la rutina</button></article>`;
+}
+document.addEventListener("click",async e=>{
+  const b=e.target.closest("#plan-ok"); if(!b||!db) return; b.disabled=true;
+  try{await db.collection("programs").doc("inicial").update({status:"revisat",reviewedAt:new Date().toISOString(),via:"coach"}); toast("Rutina validada: el client rep l'avís"); render()}
+  catch(err){b.disabled=false; toast("No s'ha pogut validar: "+err.message)}
 });
