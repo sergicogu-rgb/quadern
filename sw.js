@@ -1,5 +1,5 @@
 /* Quadern · funciona sense connexió: guarda l'app i les llibreries al mòbil */
-const V="quadern-v2";
+const V="quadern-v3";
 const CORE=["./","index.html","store.js","manifest.webmanifest","icon-192.png","icon-512.png","apple-touch-icon.png",
  "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js","https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js"];
 self.addEventListener("install",e=>{e.waitUntil(caches.open(V).then(c=>Promise.all(CORE.map(u=>c.add(u).catch(()=>{})))).then(()=>self.skipWaiting()))});
@@ -16,4 +16,20 @@ self.addEventListener("fetch",e=>{
   }
   // llibreries, fonts i imatges: la còpia guardada primer
   e.respondWith(caches.match(r).then(m=>m||fetch(r).then(res=>{if(res.ok||res.type==="opaque"){const c=res.clone();caches.open(V).then(x=>x.put(r,c))}return res})));
+});
+
+/* notificacions */
+self.addEventListener("push",e=>{
+  let d={}; try{d=e.data?e.data.json():{}}catch(_){d={title:"Quadern",body:e.data?e.data.text():""}}
+  const n=self.registration.showNotification(d.title||"Quadern",{body:d.body||"",icon:"icon-192.png",badge:"icon-192.png",tag:"q-"+(d.id||Date.now()),data:{url:d.url||"./"}});
+  const b=(self.navigator&&self.navigator.setAppBadge)?self.navigator.setAppBadge(d.badge||1).catch(()=>{}):Promise.resolve();
+  e.waitUntil(Promise.all([n,b]));
+});
+self.addEventListener("notificationclick",e=>{
+  e.notification.close();
+  const url=new URL((e.notification.data&&e.notification.data.url)||"./",self.registration.scope).href;
+  e.waitUntil(self.clients.matchAll({type:"window",includeUncontrolled:true}).then(cs=>{
+    for(const c of cs){ if(c.url.startsWith(self.registration.scope)) return c.focus().then(w=>w&&w.navigate?w.navigate(url).catch(()=>w):w) }
+    return self.clients.openWindow(url);
+  }));
 });

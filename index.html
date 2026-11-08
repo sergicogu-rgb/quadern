@@ -706,11 +706,21 @@ function drawSheet(){
   else if(sheetKind==="eq") h+=eqSheet();
   else if(sheetKind==="acc"){ const Q=window.QStore;
     h+=`<h3>Compte i dades</h3>${Q?`<p class="sub">${esc(Q.email||"")}<br>${Q.pendingCount()?"⏳ "+Q.pendingCount()+" canvis pendents de pujar":"✓ Tot sincronitzat"}</p>`:""}
-      <div class="btns">${Q?`<button id="acc-sync">Sincronitzar ara</button>`:""}<button id="acc-exp">Descarregar còpia de seguretat</button>
+      ${Q&&Q.push?`<div id="acc-push" class="sub" style="margin:4px 0 10px">…</div>`:""}
+      <div class="btns">${Q&&Q.push?`<button id="acc-notif" class="primary" hidden>🔔 Activar notificacions</button>`:""}${Q?`<button id="acc-sync">Sincronitzar ara</button>`:""}<button id="acc-exp">Descarregar còpia de seguretat</button>
       ${Q?`<button id="acc-imp">Importar una còpia</button><button class="danger" id="acc-out">Tancar sessió</button>`:""}<button id="sh-close">Tancar</button></div>
       <p class="sub" style="font-size:13px">La còpia és un fitxer amb totes les teves dades (sessions, rutines, pes i nutrició).</p>`;
   }
   sh.innerHTML=h;
+  if(sheetKind==="acc") pushUI();
+}
+async function pushUI(){
+  const P=window.QStore&&window.QStore.push, el=$("#acc-push"), b=$("#acc-notif"); if(!P||!el) return;
+  const st=await P.state();
+  const txt={on:"🔔 Notificacions activades en aquest mòbil.",off:"Activa les notificacions per rebre el pla del dia i l'informe del diumenge.",
+    denied:"Les notificacions estan bloquejades. Activa-les a Ajustos → Notificacions → Quadern.",
+    install:"Per rebre notificacions, obre el Quadern des de la icona de la pantalla d'inici.",unsupported:"Aquest mòbil no admet notificacions (cal iOS 16.4 o posterior)."}[st];
+  el.textContent=txt; if(b){ b.hidden=!(st==="off"||st==="on"); b.textContent=st==="on"?"Enviar una notificació de prova":"🔔 Activar notificacions"; b.className=st==="on"?"":"primary"; b.dataset.st=st }
 }
 $("#scrim").addEventListener("click",async e=>{
   if(e.target.id==="scrim"){closeSheet();return}
@@ -720,6 +730,11 @@ $("#scrim").addEventListener("click",async e=>{
     case "sh-close": closeSheet(); return;
     case "acc-sync": b.disabled=true; await window.QStore.sync(); toast(window.QStore.pendingCount()?"Encara hi ha canvis pendents (sense connexió)":"Sincronitzat"); drawSheet(); return;
     case "acc-out": if(b.dataset.c!=="1"){b.dataset.c="1";b.textContent="Confirma: tancar sessió";return} window.QStore.signOut(); return;
+    case "acc-notif": b.disabled=true; try{ const P=window.QStore.push;
+        if(b.dataset.st==="on"){ await P.test(); toast("Enviada. Arribarà en uns segons") }
+        else { await P.enable(); await P.test(); toast("Notificacions activades") } }
+      catch(err){ toast(err.message==="denied"?"Bloquejades: activa-les a Ajustos":"No s'ha pogut: "+(err.message||err)) }
+      b.disabled=false; pushUI(); return;
     case "acc-exp": await exportData(b); return;
     case "acc-imp": $("#imp-in").click(); return;
     case "sh-save": draft.notes=$("#sh-notes").value; await saveSession(b); return;

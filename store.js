@@ -91,6 +91,44 @@
     async list(){return {assets:[],usage:{}}}
   };
 
+  /* notificacions push */
+  const VAPID="BNPfX3sqH0FuahU4_tx7Z3Ij6Qm7CGQYiOe41LRHc78zUG-eEvFhDLcJUXTPgDl0EtJsA9cu3B2wh88KS8PSJwo";
+  const b64=s=>{s=s.replace(/-/g,"+").replace(/_/g,"/");const r=atob(s+"===".slice((s.length+3)%4));return Uint8Array.from(r,c=>c.charCodeAt(0))};
+  const standalone=()=>matchMedia("(display-mode: standalone)").matches||navigator.standalone===true;
+  Q.push={
+    supported:()=>"serviceWorker" in navigator&&"PushManager" in window&&"Notification" in window,
+    standalone,
+    async state(){
+      if(!Q.push.supported()) return standalone()?"unsupported":"install";
+      if(Notification.permission==="denied") return "denied";
+      try{const r=await navigator.serviceWorker.ready;const s=await r.pushManager.getSubscription();return s&&Notification.permission==="granted"?"on":"off"}catch(e){return "off"}
+    },
+    async enable(){
+      if(!sb||!Q.uid) throw new Error("Cal connexió");
+      const perm=await Notification.requestPermission(); if(perm!=="granted") throw new Error(perm==="denied"?"denied":"Permís no concedit");
+      const r=await navigator.serviceWorker.ready;
+      let s=await r.pushManager.getSubscription();
+      if(!s) s=await r.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:b64(VAPID)});
+      const j=s.toJSON();
+      const {error}=await sb.from("push_subs").upsert({endpoint:j.endpoint,user_id:Q.uid,p256dh:j.keys.p256dh,auth:j.keys.auth,ua:navigator.userAgent.slice(0,200)},{onConflict:"endpoint"});
+      if(error) throw error; return "on";
+    },
+    async disable(){
+      const r=await navigator.serviceWorker.ready; const s=await r.pushManager.getSubscription();
+      if(s){ if(sb) await sb.from("push_subs").delete().eq("endpoint",s.endpoint); await s.unsubscribe() } return "off";
+    },
+    async test(){
+      if(!sb||!Q.uid) throw new Error("Cal connexió");
+      const {error}=await sb.rpc("push_test"); if(error) throw error;
+    }
+  };
+  async function clearBadge(){
+    try{ if(navigator.clearAppBadge) navigator.clearAppBadge() }catch(e){}
+    if(sb&&Q.uid&&navigator.onLine!==false){ try{await sb.from("notifications").update({read_at:new Date().toISOString()}).eq("user_id",Q.uid).is("read_at",null)}catch(e){} }
+  }
+  Q.clearBadge=clearBadge;
+  document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible") clearBadge()});
+
   /* sessió */
   let dbResolve; const dbReady=new Promise(r=>dbResolve=r);
   const DB={collection};
@@ -98,6 +136,7 @@
     if(!session){Q.uid=null;showLogin();return}
     if(Q.uid&&Q.uid!==session.user.id){Q.cache={};Q.out=[];Q.lastSync=null;save()}
     Q.uid=session.user.id; Q.email=session.user.email; L.set("q_uid",Q.uid); hideLogin();
+    clearBadge();
     await Promise.race([Q.sync(),new Promise(r=>setTimeout(r,5000))]);
     dbResolve(DB);
   }
