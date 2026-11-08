@@ -439,7 +439,7 @@ const exCfg=ex=>{const min=ex&&ex.repMin!=null?ex.repMin:8,max=ex&&ex.repMax!=nu
   return {min,max,inc,ranges,rng:j=>ranges?(ranges[j]||ranges[ranges.length-1]):{min,max}}};
 const rngStr=(c,sep)=>c.ranges?c.ranges.map(r=>r.min+"–"+r.max).join(sep||" · "):c.min+"–"+c.max;
 /* Doble progressió: totes les sèries al màxim del rang → puja; si no, +1 rep. Màxim MAXUPS pujades per sessió.
-   Si Claude ha deixat un pla per a l'exercici basat en l'última sessió, aquest pla mana. */
+   Si l'entrenador ha deixat un pla per a l'exercici basat en l'última sessió, aquest pla mana. */
 const MAXUPS=3;
 function suggest(exId,excludeId,noUp){
   const c=exCfg(exById(exId)); const a=lastFor(exId,excludeId); if(!a||!a.sets.length) return null;
@@ -453,7 +453,7 @@ function suggest(exId,excludeId,noUp){
     return {kg:x.kg,reps:Math.min(r.max,Math.max(r.min,(x.reps||0)+1))};});
   return {sets,kind};
 }
-function claudeTarget(exId,excludeId){
+function coachTarget(exId,excludeId){
   const t=S.targets.find(x=>x.id===exId); if(!t||!Array.isArray(t.sets)) return null;
   const a=lastFor(exId,excludeId);
   return (a?t.basedOn===a.id:t.basedOn==="none")?t:null;
@@ -461,7 +461,7 @@ function claudeTarget(exId,excludeId){
 function planSession(exIds,excludeId){
   const out={}, cands=[];
   exIds.forEach((id,k)=>{
-    const t=claudeTarget(id,excludeId); if(t){out[id]={sets:t.sets,src:"claude",note:t.note||""};return}
+    const t=coachTarget(id,excludeId); if(t){out[id]={sets:t.sets,src:"coach",note:t.note||""};return}
     const g=suggest(id,excludeId); if(!g){out[id]=null;return}
     out[id]={sets:g.sets,src:"rule",kind:g.kind}; if(g.kind==="up") cands.push({id,k});
   });
@@ -550,7 +550,7 @@ function renderAvui(){
   let h=`<div class="hello"><span class="lbl">${esc(dayLabel())}</span><h1>${doneToday.length?"Propera sessió":"Avui toca"}</h1></div><div class="stack">`;
   doneToday.forEach(s=>{h+=`<div class="done-banner"><span class="ok">✓</span><div><b>${esc(s.name)}</b><div class="sub">Feta avui${s.durationSec?" · "+fmtDur(s.durationSec):""} · ${fn(vol((s.items||[]).flatMap(i=>i.sets))/1000,1)} t</div></div></div>`});
   if(!ready.templates&&!tpls.length) h+=`<div class="empty"><b>Carregant…</b>Un moment, s'estan llegint les teves rutines.</div>`;
-  else if(!tp||!draft.items.length) h+=`<div class="empty"><b>Cap rutina carregada</b>Quan Claude hi afegeixi les teves rutines, aquí sortirà la que et toca.</div>`;
+  else if(!tp||!draft.items.length) h+=`<div class="empty"><b>Cap rutina carregada</b>Quan el teu entrenador hi afegeixi les rutines, aquí sortirà la que et toca.</div>`;
   else{
     const {tag,title}=splitName(tp.name); const plan=planSession(draft.items.map(x=>x.exId),null);
     const lastT=sessionsSorted().find(s=>s.templateId===tp.id&&s.durationSec);
@@ -596,7 +596,7 @@ function renderWorkout(){
   const i=Math.min(Math.max(draft.cur||0,0),n-1); draft.cur=i;
   const plan=planSession(draft.items.map(x=>x.exId),draft.id);
   const it=draft.items[i], ex=exById(it.exId)||{name:it.name||"Exercici",muscle:"Altres"}, c=exCfg(ex), pp=plan[it.exId], prev=lastFor(it.exId,draft.id), d=planDir(it.exId,pp,draft.id);
-  const why=!pp?"":pp.src==="claude"?`<b>Pla de l'entrenador.</b> ${esc(pp.note||"")}`:pp.kind==="up"?`<b>↑ Puja +${fn(c.inc,2)} kg.</b> Vas arribar al màxim del rang a totes les sèries.`:pp.kind==="hold"?`<b>Mantén la càrrega.</b> Avui ja en pugen altres.`:`<b>Mateixa càrrega.</b> Busca +1 rep a cada sèrie fins al màxim del rang.`;
+  const why=!pp?"":pp.src==="coach"?`<b>Pla de l'entrenador.</b> ${esc(pp.note||"")}`:pp.kind==="up"?`<b>↑ Puja +${fn(c.inc,2)} kg.</b> Vas arribar al màxim del rang a totes les sèries.`:pp.kind==="hold"?`<b>Mantén la càrrega.</b> Avui ja en pugen altres.`:`<b>Mateixa càrrega.</b> Busca +1 rep a cada sèrie fins al màxim del rang.`;
   let h=`<div class="wo stack">
    <div class="seg">${draft.items.map((x,k)=>`<button data-act="go" data-k="${k}" class="${k===i?"cur":exState(x)}" aria-label="Exercici ${k+1}"></button>`).join("")}</div>
    ${ex.photo?`<button class="photo has" data-act="photo" aria-label="Foto de ${esc(ex.name)}"><img src="${esc(ex.photo)}" alt=""></button>`:`<button class="photo small" data-act="photo">＋ Afegeix una foto de la màquina</button>`}
@@ -812,7 +812,7 @@ function renderSummary(){
 function backupJSON(){const c={};Object.keys(S).forEach(k=>{c[k]=(S[k]||[]).map(d=>({...d}))});return JSON.stringify({app:"quadern",version:1,exportedAt:new Date().toISOString(),collections:c})}
 async function exportData(b){
   const name="quadern-copia-"+todayISO()+".json", txt=backupJSON();
-  if(!window.QStore){ let dl=null; try{dl=await window.claude.use("downloads")}catch(e){}
+  if(!window.QStore){ let dl=null; try{dl=await window.qapp.use("downloads")}catch(e){}
     if(!dl){toast("En aquesta vista no es poden descarregar fitxers");return}
     try{await dl.save({filename:name,data:new Blob([txt],{type:"application/json"})});toast("Còpia preparada")}catch(e){toast("Descàrrega cancel·lada")} return }
   const a=document.createElement("a"); a.href=URL.createObjectURL(new Blob([txt],{type:"application/json"})); a.download=name; document.body.appendChild(a); a.click(); setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},2000);
@@ -837,7 +837,7 @@ function shrink(file){return new Promise(res=>{const img=new Image(),u=URL.creat
 $("#photo-in").addEventListener("change",async e=>{
   const f=e.target.files&&e.target.files[0]; e.target.value=""; const exId=photoTarget; if(!f||!exId) return;
   $("#lb").hidden=true; if(!db){toast("Sense connexió a la base de dades");return}
-  let assets=null; try{assets=await window.claude.use("assets")}catch(err){}
+  let assets=null; try{assets=await window.qapp.use("assets")}catch(err){}
   if(!assets){toast("En aquesta vista no es poden pujar fotos");return}
   toast("Pujant foto…");
   try{const r=await assets.upload(await shrink(f)); const ex=exById(exId); const old=ex&&ex.photoId;
@@ -1172,8 +1172,8 @@ route(); renderPend();
 if(window.QStore) QStore.on("_view",()=>{ lastSaved=null; progEx=null; nutShow=null; repWeek=null; pe=null; Object.keys(S).forEach(k=>S[k]=[]); route(); });
 (async()=>{
   const timer=setTimeout(()=>setStatus("Encara no es poden carregar les dades. Revisa la connexió; el que vegis pot no estar actualitzat."),10000);
-  try{ db=window.claude&&window.claude.use?await window.claude.use("db"):null }catch(e){db=null}
-  if(!db){clearTimeout(timer);setStatus("La base de dades no està disponible en aquesta vista. Obre l'app des de claude.ai amb la sessió iniciada.");return}
+  try{ db=window.qapp&&window.qapp.use?await window.qapp.use("db"):null }catch(e){db=null}
+  if(!db){clearTimeout(timer);setStatus("La base de dades no està disponible en aquesta vista. Torna a obrir l'app amb connexió.");return}
   const sub=(col,order)=>{let q=db.collection(col); if(order) q=q.orderBy(order[0],order[1]);
     q.onSnapshot(snap=>{S[col]=snap.docs.map(d=>({id:d.id,...d.data()})); mergePend(col);
       if(!snap.metadata.fromCache){ready[col]=true; if(Object.values(ready).every(Boolean)){clearTimeout(timer);setStatus("")}}

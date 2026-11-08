@@ -73,7 +73,7 @@ function renderClients(){
     const cons=c.consent_at?`<span class="pill">RGPD ✓</span>`:`<span class="pill w">Consentiment pendent</span>`;
     h+=`<article class="card stack"><div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start">
       <div style="min-width:0"><h3 style="margin:0">${esc(c.name||c.email)}</h3><div class="sub" style="font-size:13px;overflow:hidden;text-overflow:ellipsis">${esc(c.email||"")}</div></div>
-      <div class="ph" style="justify-content:flex-end">${cons}${c.ai?`<span class="pill">IA</span>`:""}</div></div>
+      <div class="ph" style="justify-content:flex-end">${cons}</div></div>
       <div class="tiles"><div class="tile"><div class="lbl">Sessions 7 d</div><div class="v">${c.sessions_7d||0}</div></div>
         <div class="tile"><div class="lbl">Pes</div><div class="v">${c.last_weight!=null?fn(+c.last_weight,1):"–"}<small> kg</small></div></div>
         <div class="tile"><div class="lbl">Kcal 7 d</div><div class="v">${c.kcal_7d!=null?fn(+c.kcal_7d,0):"–"}<small> · ${c.kcal_days_7d||0}/7</small></div></div></div>
@@ -410,7 +410,7 @@ document.addEventListener("click",async e=>{
 /* ---------- compte del client: privacitat ---------- */
 function accExtra(){
   if(IS_COACH()) return `<button class="primary" id="acc-clients">Panell de clients</button><button id="acc-rut">Les meves rutines</button><button id="acc-pau">Les meves pautes</button>`;
-  if(IS_CLIENT()){const c=QStore.consent; return `<button id="acc-priv">Privacitat${c?" · IA "+(c.ai?"sí":"no"):""}</button><button class="danger" id="acc-del">Esborrar el compte i totes les dades</button>`}
+  if(IS_CLIENT()){return `<button id="acc-priv">Privacitat</button><button class="danger" id="acc-del">Esborrar el compte i totes les dades</button>`}
   return "";
 }
 async function accClick(b){

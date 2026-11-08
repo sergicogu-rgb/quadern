@@ -1,6 +1,5 @@
 /* Quadern · capa de dades local-primer amb sincronització a Supabase.
-   Imita l'API que feia servir l'app dins de Claude (collection/doc/set/update/delete/get/onSnapshot)
-   perquè la resta del codi no canviï. Tot s'escriu primer al mòbil i es puja quan hi ha connexió.
+   API de col·leccions (collection/doc/set/update/delete/get/onSnapshot). Tot s'escriu primer al mòbil i es puja quan hi ha connexió.
    Multiusuari: l'entrenador pot "obrir" un client (Q.viewAs) i llavors llegeix i escriu les dades d'aquell client. */
 (function(){
   const SB_URL="https://tsgvbxvrufuqlbzekmwd.supabase.co";
@@ -14,7 +13,7 @@
   /* Col·leccions: què registra el client i què prepara l'entrenador */
   const CLIENT_COLS=["sessions","bodyweight","kcallog","drafts"];
   const COACH_COLS=["exercises","templates","targets","programs","nutrition","reports"];
-  const CONSENT_VERSION="v1-2026-11";
+  const CONSENT_VERSION="v2-2026-11";
   const CONTROLLER={name:"Sergi Coma",role:"entrenador personal",contact:"sergicogu@gmail.com"};
 
   const Q={sb,uid:null,email:null,target:null,viewing:null,profile:null,consent:null,
@@ -212,7 +211,7 @@
     if(!Q.consent){showConsent(false);return true}
     return false;
   }
-  window.claude={use:async n=>n==="db"?dbReady:n==="assets"?assets:null};
+  window.qapp={use:async n=>n==="db"?dbReady:n==="assets"?assets:null};
   const lastUid=L.get("q_uid",null);
   const offlineEnter=()=>{Q.uid=lastUid;Q.profile=L.get("q_profile",null);Q.consent=L.get("q_consent",null);if(!gate())dbResolve(DB)};
   if(!sb){ if(lastUid) offlineEnter(); else showLogin(); }
@@ -290,9 +289,8 @@
       <p><b>Per a què:</b> planificar i seguir el teu entrenament i la teva alimentació i preparar-te un informe setmanal. No es fan servir per a res més, no es venen ni es cedeixen a ningú.</p>
       <p><b>Base legal:</b> el teu consentiment explícit (art. 6.1.a i 9.2.a RGPD i Llei orgànica 3/2018).</p>
       <p><b>On es guarden:</b> a Supabase, amb servidors a la UE (París), que actua com a encarregat del tractament. L'app s'allotja a GitHub Pages, que no guarda dades teves.</p>
-      <p><b>Anàlisi amb IA (opcional):</b> si ho acceptes, l'entrenador fa servir Claude (Anthropic, EUA) per analitzar les teves dades i redactar l'informe setmanal. Això implica una transferència internacional de dades. Si no ho acceptes, tens igualment l'informe automàtic de l'app.</p>
       <p><b>Quant de temps:</b> mentre siguis client. Si esborres el compte, s'eliminen totes les teves dades.</p>
-      <p><b>Els teus drets:</b> accés, rectificació, supressió, oposició, limitació i portabilitat, i retirar el consentiment quan vulguis. Des de ⚙︎ pots descarregar totes les teves dades, canviar l'opció d'IA o esborrar el compte. També pots escriure a ${esc(CONTROLLER.contact)}. Si creus que no es respecten, pots reclamar a l'Agència Espanyola de Protecció de Dades (aepd.es).</p>
+      <p><b>Els teus drets:</b> accés, rectificació, supressió, oposició, limitació i portabilitat, i retirar el consentiment quan vulguis. Des de ⚙︎ pots descarregar totes les teves dades o esborrar el compte. També pots escriure a ${esc(CONTROLLER.contact)}. Si creus que no es respecten, pots reclamar a l'Agència Espanyola de Protecció de Dades (aepd.es).</p>
     </div>`;
   function showConsent(editing){
     const cur=Q.consent;
@@ -300,14 +298,13 @@
       <form id="cs-form" class="stack">
         <label class="chkl"><input type="checkbox" id="cs-adult" ${editing?"checked disabled":""} required> Tinc 18 anys o més.</label>
         <label class="chkl"><input type="checkbox" id="cs-health" ${editing?"checked disabled":""} required> Consenteixo expressament el tractament de les meves dades de salut per a aquestes finalitats.</label>
-        <label class="chkl"><input type="checkbox" id="cs-ai" ${cur&&cur.ai?"checked":""}> Opcional: accepto l'anàlisi de les meves dades amb IA (Claude, Anthropic).</label>
-        <button class="primary" id="cs-go" style="height:52px;font-size:17px">${editing?"Desar":"Acceptar i continuar"}</button>
+        ${editing?"":`<button class="primary" id="cs-go" style="height:52px;font-size:17px">Acceptar i continuar</button>`}
         <button type="button" class="plain" id="cs-no">${editing?"Tornar":"No accepto"}</button>
         <p class="sub" id="cs-msg" style="min-height:20px"></p></form>`)) return;
     const msg=msgTo("cs-msg");
     $i("cs-no").onclick=()=>{ if(editing){hideLogin();return} msg("Sense el consentiment no es pot fer servir l'app. Pots tancar la sessió o acceptar-lo."); const b=$i("cs-no"); if(b.dataset.c){Q.signOut();return} b.dataset.c="1"; b.textContent="Tancar sessió"; };
     $i("cs-form").onsubmit=async ev=>{ev.preventDefault();
-      const adult=$i("cs-adult").checked, health=$i("cs-health").checked, ai=$i("cs-ai").checked;
+      const adult=$i("cs-adult").checked, health=$i("cs-health").checked, ai=false;
       if(!adult||!health){msg("Cal marcar les dues primeres caselles");return}
       $i("cs-go").disabled=true; msg("Desant…");
       try{
