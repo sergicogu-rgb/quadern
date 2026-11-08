@@ -27,6 +27,7 @@ Deno.serve(async (req) => {
       if (me?.role !== "coach") return json({ error: "Només l'entrenador pot convidar" }, 403);
       const email = String(body.email || "").trim().toLowerCase();
       const name = String(body.name || "").trim().slice(0, 80) || email.split("@")[0];
+      const share = body.share === true; // només genera l'enllaç (per WhatsApp), sense enviar correu
       if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return json({ error: "Correu no vàlid" }, 400);
 
       // Ja té compte?
@@ -47,13 +48,21 @@ Deno.serve(async (req) => {
           if (!nc && !nd) {
             await admin.auth.admin.deleteUser(prof.id);
             await admin.from("invites").upsert({ email, coach_id: user.id, name, created_at: new Date().toISOString(), accepted_at: null, user_id: null });
+            if (share) {
+              const gs = await admin.auth.admin.generateLink({ type: "invite", email, options: { redirectTo: APP, data: { name, invited_by: me.name } } });
+              return json({ ok: !gs.error, shared: true, emailed: false, link: gs.error ? null : gs.data.properties.action_link, reason: gs.error?.message });
+            }
             const inv = await admin.auth.admin.inviteUserByEmail(email, { redirectTo: APP, data: { name, invited_by: me.name } });
             if (!inv.error) return json({ ok: true, emailed: true, reinvited: true });
             const g0 = await admin.auth.admin.generateLink({ type: "invite", email, options: { redirectTo: APP } });
             return json({ ok: !g0.error, emailed: false, link: g0.error ? null : g0.data.properties.action_link, reason: inv.error.message });
           }
         }
-        // Client que ja fa servir l'app: correu per crear (o canviar) la contrasenya
+        // Client que ja fa servir l'app: correu (o enllaç) per crear o canviar la contrasenya
+        if (share) {
+          const gr = await admin.auth.admin.generateLink({ type: "recovery", email, options: { redirectTo: APP } });
+          return json({ ok: !gr.error, existing: true, shared: true, emailed: false, link: gr.error ? null : gr.data.properties.action_link, reason: gr.error?.message });
+        }
         const pub = createClient(URL_, ANON, { auth: { persistSession: false } });
         const r = await pub.auth.resetPasswordForEmail(email, { redirectTo: APP });
         if (!r.error) return json({ ok: true, existing: true, emailed: true });
@@ -62,6 +71,10 @@ Deno.serve(async (req) => {
       }
 
       await admin.from("invites").upsert({ email, coach_id: user.id, name, created_at: new Date().toISOString(), accepted_at: null, user_id: null });
+      if (share) {
+        const gs = await admin.auth.admin.generateLink({ type: "invite", email, options: { redirectTo: APP, data: { name, invited_by: me.name } } });
+        return json({ ok: !gs.error, shared: true, emailed: false, link: gs.error ? null : gs.data.properties.action_link, reason: gs.error?.message });
+      }
       const { error } = await admin.auth.admin.inviteUserByEmail(email, { redirectTo: APP, data: { name, invited_by: me.name } });
       if (!error) return json({ ok: true, emailed: true });
 

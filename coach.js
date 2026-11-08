@@ -44,7 +44,8 @@ function allowView(v){
 }
 
 /* ---------- PANELL DE CLIENTS ---------- */
-let ovw=null, ovwErr=null, ovwInv=[], ovwBusy=false, invLink=null, unlinkConfirm=null;
+let ovw=null, ovwErr=null, ovwInv=[], ovwBusy=false, invLink=null, invName="", invWhy="", unlinkConfirm=null;
+const waText=(n,l)=>`Ei${n?" "+n.split(" ")[0]:""}! T'he convidat al Quadern, l'app amb què porto els entrenaments 💪\n\n1. Obre aquest enllaç i crea't una contrasenya:\n${l}\n\n2. Accepta el consentiment i omple la fitxa inicial.\n3. Afegeix l'app a la pantalla d'inici (Safari → Compartir → Afegir a pantalla d'inici) i activa les notificacions a ⚙︎.\n\nAquella nit et preparem la rutina i la pauta!`;
 async function loadOverview(){
   if(ovwBusy) return; ovwBusy=true;
   try{
@@ -63,10 +64,11 @@ function renderClients(){
   h+=`<form class="card stack" id="inv-form"><span class="lbl">Convidar un client</span>
     <div class="row"><label class="f"><span class="lbl">Nom</span><input id="inv-name" autocomplete="off" required></label>
     <label class="f"><span class="lbl">Correu</span><input id="inv-email" type="email" autocomplete="off" required></label></div>
-    <button class="primary" id="inv-go" style="height:50px">Enviar invitació</button>
-    <p class="sub" style="font-size:13px">Rep un correu per crear la contrasenya. En entrar haurà d'acceptar el consentiment de dades abans de registrar res.</p>
-    ${invLink?`<div class="note stack"><span>No s'ha pogut enviar el correu. Envia-li aquest enllaç (per WhatsApp, per exemple). Caduca en 24 h.</span>
-      <div class="btns" style="margin:0"><button type="button" id="inv-share">Compartir l'enllaç</button><button type="button" id="inv-copy">Copiar l'enllaç</button></div></div>`:""}
+    <div class="btns" style="margin:0"><button class="primary" id="inv-wa" type="button" style="height:50px">📲 Enllaç per WhatsApp</button><button id="inv-go" style="height:50px">✉️ Per correu</button></div>
+    <p class="sub" style="font-size:13px">El correu serà el seu usuari. Amb l'enllaç (WhatsApp) o el correu crearà la contrasenya, acceptarà el consentiment i omplirà la fitxa.</p>
+    ${invLink?`<div class="card stack" style="border:1.5px solid var(--good)"><span><b>Enllaç llest${invName?" per a "+esc(invName):""}.</b> ${esc(invWhy||"")} Caduca en 24 h i només serveix per a aquesta persona.</span>
+      <a class="go" href="https://wa.me/?text=${encodeURIComponent(waText(invName,invLink))}" target="_blank" rel="noopener" style="display:flex;align-items:center;justify-content:center;gap:8px;text-decoration:none;color:#fff;background:#25D366;border-radius:16px;padding:15px;font-weight:700;font-size:18px">Obrir WhatsApp</a>
+      <div class="btns" style="margin:0"><button type="button" id="inv-share">Compartir…</button><button type="button" id="inv-copy">Copiar el missatge</button></div></div>`:""}
   </form>`;
   if(ovwErr) h+=`<div class="note">No s'han pogut carregar els clients: ${esc(ovwErr)}</div>`;
   else if(ovw==null) h+=`<div class="empty"><b>Carregant…</b></div>`;
@@ -80,22 +82,24 @@ function renderClients(){
         <div class="tile"><div class="lbl">Pes</div><div class="v">${c.last_weight!=null?fn(+c.last_weight,1):"–"}<small> kg</small></div></div>
         <div class="tile"><div class="lbl">Kcal 7 d</div><div class="v">${c.kcal_7d!=null?fn(+c.kcal_7d,0):"–"}<small> · ${c.kcal_days_7d||0}/7</small></div></div></div>
       <div class="sub num" style="font-size:13px">Últim entrenament: ${esc(ago(c.last_session))} · últim pes: ${esc(ago(c.last_weight_date))}</div>
-      <div class="btns" style="margin:0"><button class="primary" data-open="${esc(c.id)}">Obrir</button>${c.consent_at?"":`<button data-resend="${esc(c.email)}" data-name="${esc(c.name||"")}">Reenviar l'accés</button>`}
+      <div class="btns" style="margin:0"><button class="primary" data-open="${esc(c.id)}">Obrir</button>${c.consent_at?"":`<button data-wa="${esc(c.email)}" data-name="${esc(c.name||"")}">📲 Enllaç</button><button data-resend="${esc(c.email)}" data-name="${esc(c.name||"")}">Correu</button>`}
         <button class="danger" data-unlink="${esc(c.id)}">${unlinkConfirm===c.id?"Confirma: desvincular":"Desvincular"}</button></div></article>`;
   });
   if(ovwInv.length) h+=`<div class="card tw" style="padding:6px 10px"><table><thead><tr><th>Invitacions pendents</th><th class="r"></th></tr></thead><tbody>
     ${ovwInv.map(i=>`<tr><td><b>${esc(i.name||"")}</b><div class="sub" style="font-size:12px">${esc(i.email)} · ${esc(ago(i.created_at))}</div></td>
-      <td class="r" style="white-space:nowrap"><button class="plain" data-resend="${esc(i.email)}" data-name="${esc(i.name||"")}">Reenviar</button><button class="plain" data-cancel="${esc(i.email)}" style="color:var(--bad)">✕</button></td></tr>`).join("")}</tbody></table></div>`;
+      <td class="r" style="white-space:nowrap"><button class="plain" data-wa="${esc(i.email)}" data-name="${esc(i.name||"")}" aria-label="Enllaç per WhatsApp">📲</button><button class="plain" data-resend="${esc(i.email)}" data-name="${esc(i.name||"")}">Correu</button><button class="plain" data-cancel="${esc(i.email)}" style="color:var(--bad)">✕</button></td></tr>`).join("")}</tbody></table></div>`;
   h+=`<button class="ghost" id="ovw-reload">Actualitzar</button></div>`;
   el.innerHTML=h;
 }
-async function sendInvite(email,name,b){
-  if(b) b.disabled=true; invLink=null;
+async function sendInvite(email,name,b,share){
+  if(b) b.disabled=true; invLink=null; invName=name||""; invWhy="";
+  if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email||"")){toast("Escriu el correu del client (serà el seu usuari)"); if(b) b.disabled=false; return}
   try{
-    const r=await QStore.fn({action:"invite",email,name});
+    const r=await QStore.fn({action:"invite",email,name,share:!!share});
+    if(share&&r.link){invLink=r.link; invWhy=r.existing?"Li servirà per entrar i posar-se una contrasenya nova.":"Amb aquest enllaç crearà la contrasenya i començarà."; ovw=null; await loadOverview(); if(b) b.disabled=false; render(); return}
     if(r.existing&&r.emailed) toast("Accés reenviat a "+email);
     else if(r.emailed) toast("Invitació enviada a "+email);
-    else if(r.link){invLink=r.link; toast("Correu no enviat: comparteix l'enllaç")}
+    else if(r.link){invLink=r.link; invWhy="El correu no ha sortit."; toast("Correu no enviat: comparteix l'enllaç")}
     else toast("No s'ha pogut convidar: "+(r.reason||"error"));
     ovw=null; await loadOverview();
   }catch(e){toast("No s'ha pogut convidar: "+e.message)}
@@ -109,10 +113,12 @@ document.addEventListener("click",async e=>{
   if(b.dataset.unlink){const id=b.dataset.unlink; if(unlinkConfirm!==id){unlinkConfirm=id;render();return}
     unlinkConfirm=null; try{await QStore.rpc("coach_unlink",{client:id}); QStore.forgetClient(id); toast("Client desvinculat"); ovw=null; loadOverview()}catch(err){toast("Error: "+err.message)} return}
   if(b.dataset.resend) return sendInvite(b.dataset.resend,b.dataset.name,b);
+  if(b.dataset.wa){ const r=await sendInvite(b.dataset.wa,b.dataset.name,b,true); window.scrollTo(0,0); return r }
+  if(b.id==="inv-wa"){ return sendInvite($("#inv-email").value.trim(),$("#inv-name").value.trim(),b,true) }
   if(b.dataset.cancel){try{await QStore.sb.from("invites").delete().eq("email",b.dataset.cancel); ovw=null; loadOverview(); toast("Invitació anul·lada")}catch(err){toast(err.message)} return}
   if(b.id==="ovw-reload"){ovw=null;ovwErr=null;render();return}
-  if(b.id==="inv-copy"){try{await navigator.clipboard.writeText(invLink);toast("Enllaç copiat")}catch(err){prompt("Copia l'enllaç:",invLink)} return}
-  if(b.id==="inv-share"){try{await navigator.share({title:"Quadern d'entrenament",text:"T'he convidat al meu Quadern d'entrenament. Obre l'enllaç per crear la contrasenya:",url:invLink})}catch(err){} return}
+  if(b.id==="inv-copy"){const t=waText(invName,invLink); try{await navigator.clipboard.writeText(t);toast("Missatge copiat")}catch(err){prompt("Copia el missatge:",t)} return}
+  if(b.id==="inv-share"){try{await navigator.share({text:waText(invName,invLink)})}catch(err){} return}
 });
 
 /* ---------- INFORME SETMANAL AUTOMÀTIC ---------- */
