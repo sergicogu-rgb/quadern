@@ -13,12 +13,13 @@
   /* Col·leccions: què registra el client i què prepara l'entrenador */
   const CLIENT_COLS=["sessions","bodyweight","kcallog","drafts","intake"];
   const COACH_COLS=["exercises","templates","targets","programs","nutrition","reports"];
-  const CONSENT_VERSION="v2-2026-11";
+  const CONSENT_VERSION="v3-2026-11";
+  const AI={name:"Q",full:"Q, l'entrenador IA del Quadern",provider:"Claude, d'Anthropic PBC"};
   const CONTROLLER={name:"Sergi Coma",role:"entrenador personal",contact:"sergicogu@gmail.com"};
 
   const Q={sb,uid:null,email:null,target:null,viewing:null,profile:null,consent:null,
     cache:L.get("q_cache",{}),out:L.get("q_out",[]),lastSync:L.get("q_last",null),synced:false,listeners:{},busy:false,pulling:false,
-    CLIENT_COLS,COACH_COLS,CONSENT_VERSION,CONTROLLER};
+    CLIENT_COLS,COACH_COLS,CONSENT_VERSION,CONTROLLER,AI};
   window.QStore=Q;
   const ck=()=>Q.viewing?"q_cache_"+Q.viewing.id:"q_cache", lk=()=>Q.viewing?"q_last_"+Q.viewing.id:"q_last";
   const save=()=>{L.set(ck(),Q.cache);L.set("q_out",Q.out);L.set(lk(),Q.lastSync)};
@@ -208,7 +209,7 @@
   function gate(){
     const p=Q.profile; if(!p||p.role==="coach") return false;
     if(!p.coach_id){showNoCoach();return true}
-    if(!Q.consent){showConsent(false);return true}
+    if(!Q.consent||!Q.consent.ai){showConsent(false);return true}
     return false;
   }
   window.qapp={use:async n=>n==="db"?dbReady:n==="assets"?assets:null};
@@ -287,6 +288,7 @@
       <p><b>Responsable:</b> ${esc(CONTROLLER.name)}, ${esc(CONTROLLER.role)}. Contacte: ${esc(CONTROLLER.contact)}.</p>
       <p><b>Quines dades:</b> nom i correu; entrenaments (exercicis, càrregues, repeticions i notes); pes corporal; calories diàries i pauta d'alimentació. El pes, l'alimentació i les notes sobre molèsties o salut són <b>dades de salut</b> (categoria especial, art. 9 RGPD).</p>
       <p><b>Per a què:</b> planificar i seguir el teu entrenament i la teva alimentació i preparar-te un informe setmanal. No es fan servir per a res més, no es venen ni es cedeixen a ningú.</p>
+      <p><b>Entrenador IA (${esc(AI.name)}):</b> el servei inclou ${esc(AI.full)}, un sistema d'intel·ligència artificial (${esc(AI.provider)}) que analitza les teves dades (fitxa, entrenaments, pes i alimentació) per proposar-te rutines, càrregues, pautes i missatges. <b>Cap proposta t'arriba sense que el teu entrenador la revisi i l'aprovi</b>, de manera que no hi ha decisions basades només en un tractament automatitzat (art. 22 RGPD). Els missatges de ${esc(AI.name)} sempre es mostren com a fets per IA. Anthropic hi actua com a encarregat del tractament i les dades es poden tractar fora de la UE (EUA) amb les garanties de l'art. 46 RGPD.</p>
       <p><b>Base legal:</b> el teu consentiment explícit (art. 6.1.a i 9.2.a RGPD i Llei orgànica 3/2018).</p>
       <p><b>On es guarden:</b> a Supabase, amb servidors a la UE (París), que actua com a encarregat del tractament. L'app s'allotja a GitHub Pages, que no guarda dades teves.</p>
       <p><b>Quant de temps:</b> mentre siguis client. Si esborres el compte, s'eliminen totes les teves dades.</p>
@@ -294,18 +296,19 @@
     </div>`;
   function showConsent(editing){
     const cur=Q.consent;
-    if(!screen(`<h1>Protecció de dades</h1><p class="sub">Abans de començar, llegeix com es tracten les teves dades.</p>${Q.consentText()}
+    if(!screen(`<h1>Protecció de dades</h1><p class="sub">${cur&&!editing?"Hem actualitzat el servei: ara inclou un entrenador IA. Llegeix-ho i accepta-ho per continuar.":"Abans de començar, llegeix com es tracten les teves dades."}</p>${Q.consentText()}
       <form id="cs-form" class="stack">
         <label class="chkl"><input type="checkbox" id="cs-adult" ${editing?"checked disabled":""} required> Tinc 18 anys o més.</label>
         <label class="chkl"><input type="checkbox" id="cs-health" ${editing?"checked disabled":""} required> Consenteixo expressament el tractament de les meves dades de salut per a aquestes finalitats.</label>
+        <label class="chkl"><input type="checkbox" id="cs-ai" ${editing?"checked disabled":""} required> Accepto que ${esc(AI.name)} (intel·ligència artificial) analitzi les meves dades per proposar-me entrenaments i pautes, sempre revisades pel meu entrenador.</label>
         ${editing?"":`<button class="primary" id="cs-go" style="height:52px;font-size:17px">Acceptar i continuar</button>`}
         <button type="button" class="plain" id="cs-no">${editing?"Tornar":"No accepto"}</button>
         <p class="sub" id="cs-msg" style="min-height:20px"></p></form>`)) return;
     const msg=msgTo("cs-msg");
     $i("cs-no").onclick=()=>{ if(editing){hideLogin();return} msg("Sense el consentiment no es pot fer servir l'app. Pots tancar la sessió o acceptar-lo."); const b=$i("cs-no"); if(b.dataset.c){Q.signOut();return} b.dataset.c="1"; b.textContent="Tancar sessió"; };
     $i("cs-form").onsubmit=async ev=>{ev.preventDefault();
-      const adult=$i("cs-adult").checked, health=$i("cs-health").checked, ai=false;
-      if(!adult||!health){msg("Cal marcar les dues primeres caselles");return}
+      const adult=$i("cs-adult").checked, health=$i("cs-health").checked, ai=$i("cs-ai").checked;
+      if(!adult||!health||!ai){msg("Cal marcar les tres caselles per fer servir l'app");return}
       $i("cs-go").disabled=true; msg("Desant…");
       try{
         if(cur){const r=await sb.from("consents").update({revoked_at:new Date().toISOString()}).eq("id",cur.id); if(r.error) throw r.error}

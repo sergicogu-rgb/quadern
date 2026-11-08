@@ -72,7 +72,7 @@ function renderClients(){
   else if(ovw==null) h+=`<div class="empty"><b>Carregant…</b></div>`;
   else if(!ovw.length) h+=`<div class="empty"><b>Encara no tens clients</b>Convida el primer amb el formulari de dalt.</div>`;
   else ovw.forEach(c=>{
-    const cons=(c.consent_at?`<span class="pill">RGPD ✓</span>`:`<span class="pill w">Consentiment pendent</span>`)+(c.consent_at&&!c.intake_done?`<span class="pill w">Fitxa pendent</span>`:"")+(c.intake_alert?`<span class="pill w">Salut: revisar</span>`:"");
+    const cons=(c.consent_at?`<span class="pill">RGPD ✓</span>`:`<span class="pill w">Consentiment pendent</span>`)+(c.consent_at&&!c.intake_done?`<span class="pill w">Fitxa pendent</span>`:"")+(c.intake_alert?`<span class="pill w">Salut: revisar</span>`:"")+(c.proposals_pending?`<span class="pill" style="background:var(--accent);color:#fff">🤖 ${c.proposals_pending} per revisar</span>`:"")+(c.consent_at&&!c.ai?`<span class="pill w">Falta acceptar IA</span>`:"");
     h+=`<article class="card stack"><div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start">
       <div style="min-width:0"><h3 style="margin:0">${esc(c.name||c.email)}</h3><div class="sub" style="font-size:13px;overflow:hidden;text-overflow:ellipsis">${esc(c.email||"")}</div></div>
       <div class="ph" style="justify-content:flex-end">${cons}</div></div>
@@ -179,6 +179,7 @@ function renderResum(){
   const el=$("#v-resum"); const v=QStore.viewing||{}; const tp=tplsSorted(), nx=nextTemplate(tp), P=activePauta(), last=sessionsSorted()[0];
   const bw=bwData(), lb=bw[bw.length-1], st=kcalStats();
   el.innerHTML=`<div class="stack"><div class="vhead"><span class="lbl">${esc(v.email||"")}</span><h1>${esc(v.name||"Client")}</h1></div>
+    ${proposalsCard()}
     ${intakeCard()}
     ${autoReportCard()}
     <div class="card tw" style="padding:6px 10px"><table><tbody>
@@ -519,3 +520,50 @@ function intakeCard(){
   </tbody></table></div>${yes.length?`<div class="note"><b>Ha respost "sí" a:</b><ul class="tips">${yes.map(q=>`<li>${esc(q)}</li>`).join("")}</ul>Recomana-li revisió mèdica abans d'entrenar intens.</div>`:""}
   <p class="sub" style="font-size:12px">Actualitzada: ${esc(fdate(String(d.updatedAt||"").slice(0,10)))}</p></details>`;
 }
+
+/* ---------- PROPOSTES DE L'ENTRENADOR IA ----------
+   La IA deixa propostes a public.proposals (status pending). L'entrenador les revisa aquí:
+   en aprovar-les, proposal_decide escriu els documents al client i li envia el missatge (com a informe + notificació). */
+let prop={for:null,list:null,err:null,busy:false};
+const AIN=()=>((window.QStore||{}).AI||{name:"Q"}).name;
+async function loadProposals(id){
+  if(prop.busy) return; prop.busy=true;
+  try{const {data,error}=await QStore.sb.from("proposals").select("*").eq("client_id",id).eq("status","pending").order("created_at",{ascending:false});
+    if(error) throw error; prop={for:id,list:data||[],err:null,busy:false}}
+  catch(e){prop={for:id,list:[],err:e.message,busy:false}}
+  if(cur==="resum") render();
+}
+function docLine(d){
+  const x=d.data||{}, lbl=d.label?esc(d.label):"";
+  if(d.col==="targets"){const ex=exById(d.id)||{}; return `<tr><td>${lbl||esc(ex.name||d.id)}</td><td class="r num">${(x.sets||[]).map(s=>fn(s.kg,2)+"×"+s.reps).join(" · ")}${x.note?`<div class="sub" style="font-size:12px">${esc(x.note)}</div>`:""}</td></tr>`}
+  if(d.col==="nutrition"){const t=x.targets||{}; return `<tr><td>${lbl||"Pauta "+esc(x.from||"")}</td><td class="r num">${fn(t.kcal,0)} kcal · P ${fn(t.p,0)} · HC ${fn(t.c,0)} · G ${fn(t.g,0)}</td></tr>`}
+  if(d.col==="templates") return `<tr><td>${lbl||"Rutina"}</td><td class="r">${esc(x.name||d.id)} · ${(x.exIds||[]).length} exercicis</td></tr>`;
+  if(d.col==="exercises") return `<tr><td>${lbl||"Exercici"}</td><td class="r">${esc(x.name||d.id)}${(x.ranges||[]).length?" · "+x.ranges.map(r=>r.min+"-"+r.max).join(", "):""}</td></tr>`;
+  return `<tr><td>${lbl||esc(d.col)}</td><td class="r">${esc(x.title||x.name||d.id)}</td></tr>`;
+}
+function proposalsCard(){
+  const v=QStore.viewing; if(!v) return "";
+  if(prop.for!==v.id){ if(!prop.busy){prop={for:v.id,list:null,err:null,busy:false}; loadProposals(v.id)} return `<div class="note">🤖 Carregant propostes de ${esc(AIN())}…</div>`}
+  if(prop.err) return `<div class="note">No s'han pogut carregar les propostes: ${esc(prop.err)}</div>`;
+  if(!prop.list||!prop.list.length) return `<div class="sub" style="font-size:13px">🤖 ${esc(AIN())}: cap proposta pendent.</div>`;
+  return prop.list.map(p=>{const docs=(p.payload&&p.payload.docs)||[];
+    return `<article class="card stack" style="border:1.5px solid var(--accent)">
+      <div><span class="lbl">🤖 Proposta de ${esc(AIN())} · ${esc(ago(p.created_at))}</span><h3 style="margin:4px 0 0">${esc(p.title)}</h3></div>
+      ${p.summary?`<details open><summary class="lbl" style="cursor:pointer">Per què (només ho veus tu)</summary><div class="report">${md(p.summary)}</div></details>`:""}
+      ${docs.length?`<details ${docs.length<=12?"open":""}><summary class="lbl" style="cursor:pointer">Canvis que s'aplicaran (${docs.length})</summary><div class="tw"><table><tbody>${docs.map(docLine).join("")}</tbody></table></div></details>`:""}
+      <label class="f"><span class="lbl">Missatge per al client (el pots editar; buit = no s'envia)</span><textarea id="pm-${p.id}" rows="6">${esc(p.message||"")}</textarea></label>
+      <div class="btns" style="margin:0"><button class="primary" data-pok="${p.id}">Aprovar i enviar</button><button class="danger" data-pno="${p.id}">Rebutjar</button></div>
+      <p class="sub" style="font-size:12px">En aprovar, els canvis s'escriuen al client i rep el missatge amb una notificació. Després els pots retocar a Rutines o Pauta.</p></article>`}).join("");
+}
+document.addEventListener("click",async e=>{
+  const b=e.target.closest("button[data-pok],button[data-pno]"); if(!b||!CV()) return;
+  const id=+(b.dataset.pok||b.dataset.pno), ok=!!b.dataset.pok;
+  if(!ok&&b.dataset.c!=="1"){b.dataset.c="1";b.textContent="Confirma: rebutjar";return}
+  b.disabled=true;
+  try{
+    const ta=document.getElementById("pm-"+id);
+    const r=await QStore.rpc("proposal_decide",{pid:id,approve:ok,msg:ta?ta.value:null,note:null});
+    toast(ok?`Aprovada · ${r.docs||0} canvis aplicats`:"Proposta rebutjada");
+    prop.for=null; await QStore.sync(); render();
+  }catch(err){b.disabled=false; toast("No s'ha pogut: "+err.message)}
+});

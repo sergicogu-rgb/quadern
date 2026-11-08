@@ -1151,7 +1151,7 @@ function md(t){
 function renderInformes(){
   const el=$("#v-informes"); const list=[...S.reports].sort((a,b)=>(b.week||"").localeCompare(a.week||""));
   el.innerHTML=`<div class="stack">${liveBanner()}<div class="vhead"><span class="lbl">Setmanals</span><h1>Informes</h1></div>${autoReportCard()}${
-    list.length?list.map(r=>`<article class="card report"><span class="lbl">Setmana del ${esc(r.week?fdate(r.week,{day:"numeric",month:"long"}):"–")}</span><h3 style="margin:4px 0 6px">${esc(r.title||"Informe setmanal")}</h3>${md(r.text||"")}</article>`).join("")
+    list.length?list.map(r=>`<article class="card report"><span class="lbl">${r.from==="ia"?`<span class="pill">🤖 ${esc(((window.QStore||{}).AI||{name:"Q"}).name)} · IA · revisat pel teu entrenador</span> `:""}Setmana del ${esc(r.week?fdate(r.week,{day:"numeric",month:"long"}):"–")}</span><h3 style="margin:4px 0 6px">${esc(r.title||"Informe setmanal")}</h3>${md(r.text||"")}</article>`).join("")
     :`<p class="sub" style="font-size:13px">A sota hi apareixeran els informes comentats per l'entrenador.</p>`}</div>`;
 }
 
