@@ -66,15 +66,15 @@ function habitsCard(){
 }
 
 /* ---------- resum divertit en acabar ---------- */
-const THINGS=[["una balena orca",5500],["un elefant africà",6000],["un rinoceront",2300],["un hipopòtam",1500],["una girafa",1200],["un bisó",900],["un ós grizzly",600],["un cavall",500],["un ós polar",450],["un lleó",190],["un goril·la",160],["un cangur",85]];
+const THINGS=[["una balena orca",5500,"🐋"],["un elefant africà",6000,"🐘"],["un rinoceront",2300,"🦏"],["un hipopòtam",1500,"🦛"],["una girafa",1200,"🦒"],["un bisó",900,"🦬"],["un ós grizzly",600,"🐻"],["un cavall",500,"🐎"],["un ós polar",450,"🐻‍❄️"],["un lleó",190,"🦁"],["un goril·la",160,"🦍"],["un cangur",85,"🦘"]];
 function funFact(kg){
   if(!kg) return null; let best=null;
-  THINGS.forEach(([t,w])=>{const r=kg/w; if(r>=1.5&&r<=12){const sc=Math.abs(Math.log(r/3)); if(!best||sc<best.sc) best={t,r,sc}}});
-  if(!best){const [t,w]=THINGS.slice().sort((a,b)=>b[1]-a[1]).find(([_,w])=>kg>=w)||THINGS[THINGS.length-1]; best={t,r:kg/w}}
+  THINGS.forEach(([t,w,e])=>{const r=kg/w; if(r>=1.5&&r<=12){const sc=Math.abs(Math.log(r/3)); if(!best||sc<best.sc) best={t,r,sc,e}}});
+  if(!best){const [t,w,e]=THINGS.slice().sort((a,b)=>b[1]-a[1]).find(([_,w])=>kg>=w)||THINGS[THINGS.length-1]; best={t,r:kg/w,e}}
   const n=best.r>=10?Math.round(best.r):Math.round(best.r*10)/10;
-  return {n,t:best.t,txt:`Com aixecar ${fn(n,1)} × ${best.t}`};
+  return {n,t:best.t,e:best.e,txt:`Com aixecar ${fn(n,1)} × ${best.t}`};
 }
-function funLine(kg){const f=funFact(kg); if(!f) return ""; return `<div class="card fun"><span class="lbl">Avui has mogut</span><div class="big" style="font-size:44px;line-height:1">${fn(Math.round(kg),0)} kg</div><div class="sub">${esc(f.txt)} 🔥</div></div>`}
+function funLine(kg){const f=funFact(kg); if(!f) return ""; return `<div class="card fun"><span class="lbl">Avui has mogut</span><div class="big" style="font-size:44px;line-height:1">${fn(Math.round(kg),0)} kg</div><div class="funrow"><span class="funemo">${f.e}</span><span class="sub">${esc(f.txt)}</span></div></div>`}
 function sessionPRs(s){let n=0; (s.items||[]).forEach(it=>{const best=bestE1(it.sets||[]); const hist=S.sessions.filter(o=>o.id!==s.id&&o.date<=s.date).flatMap(o=>(o.items||[]).filter(i=>i.exId===it.exId).flatMap(i=>i.sets||[])); const pb=hist.length?bestE1(hist):0; if(pb&&best>pb) n++}); return n}
 
 /* ---------- imatges per compartir: story amb foto, sticker transparent o post ---------- */
@@ -100,11 +100,15 @@ function drawBlock(x,s,X,Y,CW){
   stats.forEach(([v,l],i)=>{const cx=X+i*(cw+gap);
     x.fillStyle=i===2&&prs?"rgba(62,207,142,.16)":"rgba(255,255,255,.08)"; roundRect(x,cx,top,cw,200,26); x.fill();
     x.strokeStyle=i===2&&prs?"rgba(62,207,142,.55)":"rgba(255,255,255,.16)"; x.lineWidth=2; x.stroke();
-    let vx=cx+26; if(i===2&&prs){LS("0px"); x.font=`56px ${FD}`; x.fillText("🏆",vx,top+112); vx+=x.measureText("🏆").width+10}
+    let vx=cx+26; if(i===2&&prs){LS("0px"); x.fillStyle="#fff"; x.font=`56px ${FD}`; x.fillText("🏆",vx,top+112); vx+=x.measureText("🏆").width+10}
     LS("-4px"); x.fillStyle=i===2&&prs?"#5ff0ad":"#fff"; x.font=`800 ${v.length>5?72:88}px ${FD}`; x.fillText(v,vx,top+118);
     LS("2px"); x.fillStyle="rgba(255,255,255,.65)"; x.font=`600 22px ${FD}`; x.fillText(l,cx+28,top+168)});
   if(f){LS("0px"); x.fillStyle="rgba(255,255,255,.8)"; x.font=`500 32px ${FD}`; x.fillText(`Avui he aixecat l'equivalent a`,X,Y+570);
-    LS("-3px"); x.fillStyle=acc; x.font=`italic 800 84px ${FD}`; wrap(x,`${fn(f.n,1)} × ${f.t}`,X,Y+660,CW,82)}
+    const EW=190; // animal a la dreta
+    LS("-3px"); x.fillStyle=acc; const ftx=`${fn(f.n,1)} × ${f.t}`; let fz=84; do{x.font=`italic 800 ${fz}px ${FD}`; fz-=4}while(x.measureText(ftx).width>CW-EW-10&&fz>62); wrap(x,ftx,X,Y+665,CW-EW-10,fz+2);
+    LS("0px"); const eg=x.createRadialGradient(X+CW-EW/2,Y+640,10,X+CW-EW/2,Y+640,EW/2+10); eg.addColorStop(0,"rgba(91,140,255,.35)"); eg.addColorStop(1,"rgba(91,140,255,0)");
+    x.fillStyle=eg; x.beginPath(); x.arc(X+CW-EW/2,Y+640,EW/2+10,0,Math.PI*2); x.fill();
+    x.textAlign="center"; x.fillStyle="#fff"; x.font=`150px "Apple Color Emoji","Noto Color Emoji","Segoe UI Emoji",sans-serif`; x.fillText(f.e,X+CW-EW/2,Y+690); x.textAlign="left"}
   LS("-1px"); x.textAlign="right"; x.fillStyle="#fff"; x.font=`italic 800 34px ${FD}`; x.fillText("Una més.",X+CW,Y+820); x.textAlign="left";
   LS("0px"); x.fillStyle="rgba(255,255,255,.6)"; x.font=`600 24px ${FD}`; x.fillText(`${all.length} sèries · ${(s.items||[]).length} exercicis`,X,Y+820);
   return {kg,f};
@@ -194,5 +198,6 @@ document.head.insertAdjacentHTML("beforeend",`<style>
 #shsheet .shbox{position:absolute;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--line);border-radius:24px 24px 0 0;padding:20px 16px calc(20px + env(safe-area-inset-bottom));max-width:640px;margin:0 auto}
 .shopt{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;padding:14px 16px}
 .shopt span{font-size:13px;color:var(--muted);font-weight:500}
+.funrow{display:flex;align-items:center;gap:10px;justify-content:center}.funemo{font-size:44px;line-height:1}
 .fun .big{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
 </style>`);
