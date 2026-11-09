@@ -1,4 +1,4 @@
-/* Quadern · mode entrenador
+/* 2UP · mode entrenador
    - Panell de clients (resum de cada client, invitacions, obrir/desvincular)
    - Vista d'un client: Resum (informe automàtic), Rutines (editor), Pauta (editor amb calculadora), Pes, Setmana, Menjar, Informes
    - Informe setmanal automàtic (també el veu el client a Informes)
@@ -45,7 +45,7 @@ function allowView(v){
 
 /* ---------- PANELL DE CLIENTS ---------- */
 let ovw=null, ovwErr=null, ovwInv=[], ovwBusy=false, invLink=null, invName="", invWhy="", unlinkConfirm=null;
-const waText=(n,l)=>`Ei${n?" "+n.split(" ")[0]:""}! T'he convidat al Quadern, l'app amb què porto els entrenaments 💪\n\n1. Obre aquest enllaç i crea't una contrasenya:\n${l}\n\n2. Accepta el consentiment i omple la fitxa inicial.\n3. Afegeix l'app a la pantalla d'inici (Safari → Compartir → Afegir a pantalla d'inici) i activa les notificacions a ⚙︎.\n\nAquella nit et preparem la rutina i la pauta!`;
+const waText=(n,l)=>`Ei${n?" "+n.split(" ")[0]:""}! T'he convidat a 2UP, l'app amb què porto els entrenaments 💪\n\n1. Obre aquest enllaç i crea't una contrasenya:\n${l}\n\n2. Accepta el consentiment i omple la fitxa inicial.\n3. Afegeix l'app a la pantalla d'inici (Safari → Compartir → Afegir a pantalla d'inici) i activa les notificacions a ⚙︎.\n\nAquella nit et preparem la rutina i la pauta!`;
 async function loadOverview(){
   if(ovwBusy) return; ovwBusy=true;
   try{

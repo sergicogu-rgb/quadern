@@ -1,4 +1,4 @@
-/* Quadern · capa de dades local-primer amb sincronització a Supabase.
+/* 2UP · capa de dades local-primer amb sincronització a Supabase.
    API de col·leccions (collection/doc/set/update/delete/get/onSnapshot). Tot s'escriu primer al mòbil i es puja quan hi ha connexió.
    Multiusuari: l'entrenador pot "obrir" un client (Q.viewAs) i llavors llegeix i escriu les dades d'aquell client. */
 (function(){
@@ -14,7 +14,8 @@
   const CLIENT_COLS=["sessions","bodyweight","kcallog","drafts","intake"];
   const COACH_COLS=["exercises","templates","targets","programs","nutrition","reports"];
   const CONSENT_VERSION="v3-2026-11";
-  const AI={name:"Q",full:"Q, l'entrenador IA del Quadern",provider:"Claude, d'Anthropic PBC"};
+  const AI={name:"Atlas",full:"Atlas, l'entrenador IA de 2UP",provider:"Claude, d'Anthropic PBC"};
+  const APP_NAME="2UP";
   const CONTROLLER={name:"Sergi Coma",role:"entrenador personal",contact:"sergicogu@gmail.com"};
 
   const Q={sb,uid:null,email:null,target:null,viewing:null,profile:null,consent:null,
@@ -234,7 +235,7 @@
     if(!document.body){document.addEventListener("DOMContentLoaded",()=>screen(html),{once:true});return null}
     let el=document.getElementById("login");
     if(!el){el=document.createElement("div");el.id="login";document.body.appendChild(el)}
-    el.hidden=false; el.scrollTop=0; el.innerHTML=`<div class="lgin"><div class="lgbrand">Quadern <i>d'entrenament</i></div>${html}</div>`; return el;
+    el.hidden=false; el.scrollTop=0; el.innerHTML=`<div class="lgin"><div class="lgbrand">2UP <i>Reps up. Weight up.</i></div>${html}</div>`; return el;
   }
   const $i=id=>document.getElementById(id);
   const msgTo=id=>t=>{const m=$i(id);if(m)m.textContent=t};

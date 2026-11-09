@@ -1,4 +1,4 @@
-/* Quadern · enganxar: salutació, missatge de Q en format xat, hàbits i ratxes, resum divertit i targeta per compartir.
+/* 2UP · enganxar: salutació, missatge de Q en format xat, hàbits i ratxes, resum divertit i targeta per compartir.
    Depèn dels helpers globals de index.html (S, esc, fn, md, todayISO, addDays, weekStart, tplsSorted, bwData, vol...). */
 
 /* ---------- salutació ---------- */
@@ -22,7 +22,7 @@ function avuiTop(){
   if(seen===r.id) return "";
   const t=plain(r.text), short=t.length>240?t.slice(0,235).replace(/\s+\S*$/,"")+"…":t;
   const when=r.createdAt?new Date(r.createdAt).toLocaleDateString("ca-ES",{weekday:"short",day:"numeric",month:"short"}):"";
-  return `<div class="qchat"><div class="qav">${esc(QNAME())}</div><div class="qbody">
+  return `<div class="qchat"><div class="qav">${esc(QNAME().charAt(0))}</div><div class="qbody">
     <div class="qhead"><b>${esc(QNAME())}</b><span class="qia">IA</span><span class="sub" style="font-size:12px">${esc(when)}</span></div>
     <div class="qbub">${esc(short).replace(/\n/g,"<br>")}<span class="qtick">✓✓</span></div>
     <div class="qact"><a href="#informes">Llegir sencer ›</a><button class="plain" data-qseen="${esc(r.id)}">Entesos 👍</button></div>
@@ -93,7 +93,7 @@ function drawCard(x,s,X,Y,glass){
   const AIN=((window.QStore||{}).AI||{name:"Q"}).name;
   const ag=x.createLinearGradient(X+44,Y+40,X+104,Y+100); ag.addColorStop(0,"#5b8cff"); ag.addColorStop(1,"#34d4ff");
   x.fillStyle=ag; x.beginPath(); x.arc(X+74,Y+72,30,0,Math.PI*2); x.fill();
-  LS("0px"); x.fillStyle="#fff"; x.textAlign="center"; x.font=`italic 800 32px ${FD}`; x.fillText(AIN,X+74,Y+84);
+  LS("0px"); x.fillStyle="#fff"; x.textAlign="center"; x.font=`italic 800 32px ${FD}`; x.fillText(AIN.charAt(0),X+74,Y+84);
   x.textAlign="left"; x.fillStyle=CY; x.font=`600 28px ${FD}`; x.fillText(`Analitzat per ${AIN}`,X+120,Y+82);
   const ds=dt(s.date).toLocaleDateString("ca-ES",{day:"numeric",month:"short"}); x.textAlign="right"; x.fillStyle="rgba(255,255,255,.55)"; x.font=`600 26px ${FD}`; x.fillText(ds,X+W-44,Y+82);
   // trofeu
@@ -126,8 +126,8 @@ function drawCard(x,s,X,Y,glass){
     const w=THINGS.find(t=>t[0]===f.t); x.fillText(`Com aixecar ${f.t} (≈${fn(w?w[1]:0,0)} kg).`,cx,sy+222);
     x.fillStyle=CY; x.font=`700 28px ${FD}`; x.fillText(`${timesWord(kg/(w?w[1]:1))}.`,cx,sy+262) }
   // peu
-  LS("0px"); x.textAlign="left"; x.font=`700 28px ${FD}`; const w1=x.measureText("Quadern  ").width; x.font=`italic 800 28px ${FD}`; const w2=x.measureText("Una més.").width; const fx=cx-(w1+w2)/2;
-  x.fillStyle=CY; x.font=`700 28px ${FD}`; x.fillText("Quadern  ",fx,Y+CARD_H-40); x.fillStyle="#fff"; x.font=`italic 800 28px ${FD}`; x.fillText("Una més.",fx+w1,Y+CARD_H-40);
+  LS("0px"); x.textAlign="left"; x.font=`700 28px ${FD}`; const w1=x.measureText("2UP  ").width; x.font=`italic 800 28px ${FD}`; const w2=x.measureText("Reps up. Weight up.").width; const fx=cx-(w1+w2)/2;
+  x.fillStyle=CY; x.font=`700 28px ${FD}`; x.fillText("2UP  ",fx,Y+CARD_H-40); x.fillStyle="#fff"; x.font=`italic 800 28px ${FD}`; x.fillText("Reps up. Weight up.",fx+w1,Y+CARD_H-40);
   x.textAlign="left";
   return {kg,f};
 }
@@ -161,7 +161,7 @@ function openShareSheet(){
     <div><span class="lbl">Compartir la sessió</span><h2 style="margin:4px 0 0">Per a la teva <em>story</em></h2></div>
     <button class="go" data-sh="photo" style="font-size:18px!important">📸 Story amb una foto teva</button>
     <button data-sh="sticker" class="shopt"><b>🏷️ Sticker transparent</b><span>Per posar a sobre d'un vídeo o foto a Instagram: copia'l i enganxa'l a la story</span></button>
-    <button data-sh="story" class="shopt"><b>📱 Story sense foto</b><span>Fons blau del Quadern (9:16)</span></button>
+    <button data-sh="story" class="shopt"><b>📱 Story sense foto</b><span>Fons blau de 2UP (9:16)</span></button>
     <button data-sh="post" class="shopt"><b>🖼️ Post (4:5)</b><span>Per al feed</span></button>
     <button class="plain" data-shx>Cancel·lar</button>
     <input type="file" id="sh-file" accept="image/*" hidden></div>`;
