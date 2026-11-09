@@ -575,7 +575,7 @@ function renderAvui(){
   const today=todayISO(), tpls=tplsSorted(), tp=tpls.find(t=>t.id===draft.templateId);
   const doneToday=S.sessions.filter(s=>s.date===today);
   let h=`<div class="hello"><span class="lbl">${esc(dayLabel())}${doneToday.length?" · propera sessió":""}</span><h1>${typeof greetHTML==="function"?greetHTML():(doneToday.length?"Propera sessió":"Avui toca")}</h1></div><div class="stack">${typeof avuiTop==="function"?avuiTop():""}${typeof planBanner==="function"?planBanner():""}`;
-  doneToday.forEach(s=>{h+=`<div class="done-banner"><span class="ok">✓</span><div><b>${esc(s.name)}</b><div class="sub">Feta avui${s.durationSec?" · "+fmtDur(s.durationSec):""} · ${fn(vol((s.items||[]).flatMap(i=>i.sets))/1000,1)} t</div></div></div>`});
+  doneToday.forEach(s=>{h+=`<div class="done-banner"><span class="ok">✓</span><div><b>${esc(s.name)}</b><div class="sub">Feta avui${s.durationSec?" · "+fmtDur(s.durationSec):""} · ${fn(vol((s.items||[]).flatMap(i=>i.sets))/1000,1)} t</div></div><button data-share-s="${esc(s.id)}" style="margin-left:auto;flex-shrink:0">📤 Story</button></div>`});
   if(!ready.templates&&!tpls.length) h+=`<div class="empty"><b>Carregant…</b>Un moment, s'estan llegint les teves rutines.</div>`;
   else if(!tp||!draft.items.length) h+=`<div class="empty"><b>Cap rutina carregada</b>Quan el teu entrenador hi afegeixi les rutines, aquí sortirà la que et toca.</div>`;
   else{
@@ -834,7 +834,7 @@ function renderSummary(){
       <div class="tile"><div class="lbl">Rècords</div><div class="v ${prs?"up":""}">${prs}</div></div></div>
     <div class="card tw" style="padding:6px 10px"><table><thead><tr><th>Exercici</th><th>Sèries</th><th class="r">1RM vs ant.</th></tr></thead><tbody>${rows}</tbody></table></div>
     ${typeof funLine==="function"?funLine(vol(all)):""}
-    <button class="go" id="s-share" style="font-size:20px">📤 Compartir la sessió</button>
+    <button class="go" id="s-share" style="font-size:20px">📤 Compartir a Instagram</button>
     <button id="s-close" style="height:52px">Tancar</button></div>`;
 }
 

@@ -66,66 +66,106 @@ function habitsCard(){
 }
 
 /* ---------- resum divertit en acabar ---------- */
-const THINGS=[["un elefant africà",6000],["un rinoceront",2300],["un Seat Ibiza",1150],["una girafa adulta",1200],["un piano de cua",480],["un cavall",500],["una vaca",650],["un ós polar",450],["una moto",200],["una nevera",80]];
+const THINGS=[["una balena orca",5500],["un elefant africà",6000],["un rinoceront",2300],["un hipopòtam",1500],["una girafa",1200],["un bisó",900],["un ós grizzly",600],["un cavall",500],["un ós polar",450],["un lleó",190],["un goril·la",160],["un cangur",85]];
 function funFact(kg){
   if(!kg) return null; let best=null;
   THINGS.forEach(([t,w])=>{const r=kg/w; if(r>=1.5&&r<=12){const sc=Math.abs(Math.log(r/3)); if(!best||sc<best.sc) best={t,r,sc}}});
-  if(!best){const [t,w]=THINGS.find(([_,w])=>kg>=w)||THINGS[THINGS.length-1]; best={t,r:kg/w}}
+  if(!best){const [t,w]=THINGS.slice().sort((a,b)=>b[1]-a[1]).find(([_,w])=>kg>=w)||THINGS[THINGS.length-1]; best={t,r:kg/w}}
   const n=best.r>=10?Math.round(best.r):Math.round(best.r*10)/10;
   return {n,t:best.t,txt:`Com aixecar ${fn(n,1)} × ${best.t}`};
 }
 function funLine(kg){const f=funFact(kg); if(!f) return ""; return `<div class="card fun"><span class="lbl">Avui has mogut</span><div class="big" style="font-size:44px;line-height:1">${fn(Math.round(kg),0)} kg</div><div class="sub">${esc(f.txt)} 🔥</div></div>`}
+function sessionPRs(s){let n=0; (s.items||[]).forEach(it=>{const best=bestE1(it.sets||[]); const hist=S.sessions.filter(o=>o.id!==s.id&&o.date<=s.date).flatMap(o=>(o.items||[]).filter(i=>i.exId===it.exId).flatMap(i=>i.sets||[])); const pb=hist.length?bestE1(hist):0; if(pb&&best>pb) n++}); return n}
 
-/* ---------- targeta per compartir (imatge 1080×1350 per a Instagram) ---------- */
-async function shareSession(s){
-  try{ if(document.fonts&&document.fonts.load){await Promise.all([document.fonts.load('800 120px "Inter"'),document.fonts.load('italic 800 120px "Inter"'),document.fonts.load('600 40px "Inter"')])} }catch(e){}
-  const W=1080,H=1350,c=document.createElement("canvas"); c.width=W;c.height=H; const x=c.getContext("2d");
-  const D='"Inter","Inter Display",system-ui,sans-serif', B='"Inter",system-ui,sans-serif';
-  // fons
-  let g=x.createLinearGradient(0,0,W,H); g.addColorStop(0,"#0d0f45"); g.addColorStop(1,"#05051c"); x.fillStyle=g; x.fillRect(0,0,W,H);
-  const rg=x.createRadialGradient(W*.9,H*.05,0,W*.9,H*.05,W*.9); rg.addColorStop(0,"rgba(91,140,255,.45)"); rg.addColorStop(1,"rgba(91,140,255,0)"); x.fillStyle=rg; x.fillRect(0,0,W,H);
-  x.strokeStyle="rgba(52,212,255,.18)"; x.lineWidth=60; x.beginPath(); x.arc(W-60,140,260,0,Math.PI*2); x.stroke();
-  const acc=x.createLinearGradient(0,0,W,0); acc.addColorStop(0,"#5b8cff"); acc.addColorStop(1,"#34d4ff");
-  // capçalera
-  x.fillStyle="#fff"; x.font=`800 46px ${D}`; x.textBaseline="alphabetic"; x.fillText("Quadern",80,120);
-  x.fillStyle=acc; x.fillRect(80,138,64,5);
-  x.fillStyle="rgba(255,255,255,.6)"; x.font=`600 30px ${B}`;
-  const dstr=dt(s.date).toLocaleDateString("ca-ES",{weekday:"long",day:"numeric",month:"long"}); x.fillText(dstr.charAt(0).toUpperCase()+dstr.slice(1),80,190);
-  // títol
+/* ---------- imatges per compartir: story amb foto, sticker transparent o post ---------- */
+const FD='"Inter","Inter Display",system-ui,sans-serif';
+async function loadFonts(){try{ if(document.fonts&&document.fonts.load) await Promise.all([document.fonts.load(`800 120px Inter`),document.fonts.load(`italic 800 120px Inter`),document.fonts.load(`600 40px Inter`)]) }catch(e){}}
+// Bloc de contingut (~830 px d'alt) a partir de (X,Y), amplada CW
+function drawBlock(x,s,X,Y,CW){
+  const LS=v=>{try{x.letterSpacing=v}catch(e){}};
+  const acc=x.createLinearGradient(X,0,X+CW,0); acc.addColorStop(0,"#6f9bff"); acc.addColorStop(1,"#34d4ff");
+  const all=(s.items||[]).flatMap(i=>i.sets||[]), kg=vol(all), prs=sessionPRs(s), f=funFact(kg);
+  x.textBaseline="alphabetic"; x.textAlign="left";
+  LS("-1px"); x.fillStyle="#fff"; x.font=`800 44px ${FD}`; x.fillText("Quadern",X,Y+44);
+  x.fillStyle=acc; x.fillRect(X,Y+60,60,5);
+  LS("0px"); x.fillStyle="rgba(255,255,255,.75)"; x.font=`600 28px ${FD}`;
+  const ds=dt(s.date).toLocaleDateString("ca-ES",{weekday:"long",day:"numeric",month:"long"}); x.textAlign="right"; x.fillText(ds.charAt(0).toUpperCase()+ds.slice(1),X+CW,Y+44); x.textAlign="left";
   const {tag,title}=(typeof splitName==="function"?splitName(s.name):{tag:"",title:s.name});
-  x.fillStyle="#fff"; x.font=`800 104px ${D}`;
-  try{x.letterSpacing="-4px"}catch(e){} const words=String(title||s.name||"Sessió").split(" "); let line="",y=330; const lines=[];
-  words.forEach(w=>{const t=line?line+" "+w:w; if(x.measureText(t).width>W-160&&line){lines.push(line);line=w}else line=t}); lines.push(line);
-  lines.slice(0,2).forEach((l,i)=>x.fillText(l,80,y+i*100)); const LS=v=>{try{x.letterSpacing=v}catch(e){}}; LS("-2px");
-  y+=Math.min(lines.length,2)*100+10;
-  if(tag){x.font=`italic 800 56px ${D}`; x.fillStyle=acc; x.fillText(String(tag),80,y); y+=30}
-  // xifres
-  const all=s.items.flatMap(i=>i.sets), kg=vol(all);
-  let prs=0; s.items.forEach(it=>{const best=bestE1(it.sets); const hist=S.sessions.filter(o=>o.id!==s.id&&o.date<=s.date).flatMap(o=>(o.items||[]).filter(i=>i.exId===it.exId).flatMap(i=>i.sets)); const pb=hist.length?bestE1(hist):0; if(pb&&best>pb) prs++});
-  const stats=[[s.durationSec?Math.round(s.durationSec/60)+"":"–","MIN"],[fn(Math.round(kg),0),"KG"],[String(all.length),"SÈRIES"]];
-  const top=y+90, cw=(W-160-40)/3;
-  stats.forEach(([v,l],i)=>{const cx=80+i*(cw+20);
-    x.fillStyle="rgba(255,255,255,.06)"; roundRect(x,cx,top,cw,230,28); x.fill(); x.strokeStyle="rgba(255,255,255,.12)"; x.lineWidth=2; x.stroke();
-    LS("-4px"); x.fillStyle="#fff"; x.font=`800 ${v.length>5?84:100}px ${D}`; x.fillText(v,cx+30,top+140);
-    LS("2px"); x.fillStyle="rgba(255,255,255,.6)"; x.font=`600 26px ${B}`; x.fillText(l,cx+32,top+192)});
-  // frase divertida
-  const f=funFact(kg); let fy=top+330;
-  if(f){LS("0px"); x.fillStyle="rgba(255,255,255,.7)"; x.font=`500 34px ${B}`; x.fillText("Com aixecar",80,fy);
-    LS("-3px"); x.fillStyle=acc; x.font=`italic 800 92px ${D}`; const ft=`${fn(f.n,1)} × ${f.t}`;
-    wrap(x,ft,80,fy+95,W-160,88)}
-  LS("0px"); if(prs){x.fillStyle="#3ecf8e"; x.font=`800 40px ${D}`; x.fillText(`🏆 ${prs} ${prs===1?"RÈCORD NOU":"RÈCORDS NOUS"}`,80,H-170)}
-  // peu
-  x.fillStyle=acc; roundRect(x,80,H-110,W-160,6,3); x.fill();
-  x.fillStyle="rgba(255,255,255,.55)"; x.font=`600 28px ${B}`; x.fillText("Entrenat amb el Quadern",80,H-60);
-  x.textAlign="right"; LS("-1px"); x.fillStyle="#fff"; x.font=`italic 800 36px ${D}`; x.fillText("Una més.",W-80,H-60); x.textAlign="left";
+  let fs=100; LS("-4px"); x.fillStyle="#fff";
+  do{ x.font=`800 ${fs}px ${FD}`; fs-=4 }while(x.measureText(title||s.name||"Sessió").width>CW&&fs>56);
+  x.fillText(title||s.name||"Sessió",X,Y+180);
+  if(tag){LS("-2px"); x.font=`italic 800 46px ${FD}`; x.fillStyle=acc; x.fillText(String(tag),X,Y+240)}
+  const stats=[[s.durationSec?String(Math.round(s.durationSec/60)):"–","MINUTS"],[fn(Math.round(kg),0),"KG TOTALS"],[String(prs),prs===1?"RÈCORD":"RÈCORDS"]];
+  const top=Y+290, gap=18, cw=(CW-gap*2)/3;
+  stats.forEach(([v,l],i)=>{const cx=X+i*(cw+gap);
+    x.fillStyle=i===2&&prs?"rgba(62,207,142,.16)":"rgba(255,255,255,.08)"; roundRect(x,cx,top,cw,200,26); x.fill();
+    x.strokeStyle=i===2&&prs?"rgba(62,207,142,.55)":"rgba(255,255,255,.16)"; x.lineWidth=2; x.stroke();
+    let vx=cx+26; if(i===2&&prs){LS("0px"); x.font=`56px ${FD}`; x.fillText("🏆",vx,top+112); vx+=x.measureText("🏆").width+10}
+    LS("-4px"); x.fillStyle=i===2&&prs?"#5ff0ad":"#fff"; x.font=`800 ${v.length>5?72:88}px ${FD}`; x.fillText(v,vx,top+118);
+    LS("2px"); x.fillStyle="rgba(255,255,255,.65)"; x.font=`600 22px ${FD}`; x.fillText(l,cx+28,top+168)});
+  if(f){LS("0px"); x.fillStyle="rgba(255,255,255,.8)"; x.font=`500 32px ${FD}`; x.fillText(`Avui he aixecat l'equivalent a`,X,Y+570);
+    LS("-3px"); x.fillStyle=acc; x.font=`italic 800 84px ${FD}`; wrap(x,`${fn(f.n,1)} × ${f.t}`,X,Y+660,CW,82)}
+  LS("-1px"); x.textAlign="right"; x.fillStyle="#fff"; x.font=`italic 800 34px ${FD}`; x.fillText("Una més.",X+CW,Y+820); x.textAlign="left";
+  LS("0px"); x.fillStyle="rgba(255,255,255,.6)"; x.font=`600 24px ${FD}`; x.fillText(`${all.length} sèries · ${(s.items||[]).length} exercicis`,X,Y+820);
+  return {kg,f};
+}
+function bgNavy(x,W,H){let g=x.createLinearGradient(0,0,W,H); g.addColorStop(0,"#0d0f45"); g.addColorStop(1,"#05051c"); x.fillStyle=g; x.fillRect(0,0,W,H);
+  const rg=x.createRadialGradient(W*.9,H*.05,0,W*.9,H*.05,W*.9); rg.addColorStop(0,"rgba(91,140,255,.45)"); rg.addColorStop(1,"rgba(91,140,255,0)"); x.fillStyle=rg; x.fillRect(0,0,W,H);
+  x.strokeStyle="rgba(52,212,255,.16)"; x.lineWidth=60; x.beginPath(); x.arc(W-60,160,260,0,Math.PI*2); x.stroke()}
+async function makeImage(s,mode,photo){
+  await loadFonts();
+  const c=document.createElement("canvas"), x=c.getContext("2d"); let info;
+  if(mode==="sticker"){ c.width=1080;c.height=1000;
+    x.fillStyle="rgba(8,9,40,.80)"; roundRect(x,30,30,1020,940,52); x.fill(); x.strokeStyle="rgba(120,160,255,.35)"; x.lineWidth=3; x.stroke();
+    info=drawBlock(x,s,90,80,900);
+  } else if(mode==="story"){ c.width=1080;c.height=1920;
+    if(photo){ const sc=Math.max(1080/photo.width,1920/photo.height), w=photo.width*sc, h=photo.height*sc; x.drawImage(photo,(1080-w)/2,(1920-h)/2,w,h);
+      const g=x.createLinearGradient(0,820,0,1920); g.addColorStop(0,"rgba(5,5,28,0)"); g.addColorStop(.35,"rgba(5,5,28,.72)"); g.addColorStop(1,"rgba(5,5,28,.92)"); x.fillStyle=g; x.fillRect(0,820,1080,1100);
+      info=drawBlock(x,s,80,1920-830-150,920);
+    } else { bgNavy(x,1080,1920); info=drawBlock(x,s,80,520,920) }
+  } else { c.width=1080;c.height=1350; bgNavy(x,1080,1350); info=drawBlock(x,s,80,260,920) }
   const blob=await new Promise(r=>c.toBlob(r,"image/png"));
-  const file=new File([blob],"quadern-"+s.date+".png",{type:"image/png"});
-  try{
-    if(navigator.canShare&&navigator.canShare({files:[file]})){await navigator.share({files:[file],title:"La meva sessió",text:f?`${fn(Math.round(kg),0)} kg avui 💪 ${f.txt}`:""});return}
-  }catch(e){ if(e&&e.name==="AbortError") return }
-  const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download=file.name; document.body.appendChild(a); a.click(); setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},2000);
+  return {blob,info};
+}
+async function shareBlob(blob,name,text){
+  const file=new File([blob],name,{type:"image/png"});
+  try{ if(navigator.canShare&&navigator.canShare({files:[file]})){await navigator.share({files:[file],text});return} }catch(e){ if(e&&e.name==="AbortError") return }
+  const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download=name; document.body.appendChild(a); a.click(); setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},2000);
   toast("Imatge desada");
 }
+let shareFor=null;
+function shareSession(s){ shareFor=s; openShareSheet() }
+function openShareSheet(){
+  let el=document.getElementById("shsheet"); if(el) el.remove();
+  el=document.createElement("div"); el.id="shsheet";
+  el.innerHTML=`<div class="shbg" data-shx></div><div class="shbox stack">
+    <div><span class="lbl">Compartir la sessió</span><h2 style="margin:4px 0 0">Per a la teva <em>story</em></h2></div>
+    <button class="go" data-sh="photo" style="font-size:18px!important">📸 Story amb una foto teva</button>
+    <button data-sh="sticker" class="shopt"><b>🏷️ Sticker transparent</b><span>Per posar a sobre d'un vídeo o foto a Instagram: copia'l i enganxa'l a la story</span></button>
+    <button data-sh="story" class="shopt"><b>📱 Story sense foto</b><span>Fons blau del Quadern (9:16)</span></button>
+    <button data-sh="post" class="shopt"><b>🖼️ Post (4:5)</b><span>Per al feed</span></button>
+    <button class="plain" data-shx>Cancel·lar</button>
+    <input type="file" id="sh-file" accept="image/*" hidden></div>`;
+  document.body.appendChild(el);
+}
+document.addEventListener("click",async e=>{
+  const sv=e.target.closest("[data-share-s]"); if(sv){const s=S.sessions.find(o=>o.id===sv.dataset.shareS); if(s) shareSession(s); return}
+  if(e.target.closest("[data-shx]")){const el=document.getElementById("shsheet"); if(el) el.remove(); return}
+  const b=e.target.closest("button[data-sh]"); if(!b||!shareFor) return;
+  const m=b.dataset.sh;
+  if(m==="photo"){ document.getElementById("sh-file").click(); return }
+  b.disabled=true; try{ const {blob,info}=await makeImage(shareFor,m); await shareBlob(blob,`quadern-${shareFor.date}-${m}.png`,info.f?`${fn(Math.round(info.kg),0)} kg avui 💪 ${info.f.txt}`:"") }
+  catch(err){toast("No s'ha pogut crear la imatge")} b.disabled=false;
+});
+document.addEventListener("change",async e=>{
+  if(e.target.id!=="sh-file"||!e.target.files||!e.target.files[0]||!shareFor) return;
+  const f=e.target.files[0]; e.target.value="";
+  try{
+    const img=await new Promise((res,rej)=>{const i=new Image(); i.onload=()=>res(i); i.onerror=rej; i.src=URL.createObjectURL(f)});
+    const {blob,info}=await makeImage(shareFor,"story",img);
+    await shareBlob(blob,`quadern-${shareFor.date}-story.png`,info.f?`${fn(Math.round(info.kg),0)} kg avui 💪`:"");
+  }catch(err){toast("No s'ha pogut fer servir aquesta foto")}
+});
 function roundRect(x,X,Y,w,h,r){x.beginPath();x.moveTo(X+r,Y);x.arcTo(X+w,Y,X+w,Y+h,r);x.arcTo(X+w,Y+h,X,Y+h,r);x.arcTo(X,Y+h,X,Y,r);x.arcTo(X,Y,X+w,Y,r);x.closePath()}
 function wrap(x,t,X,Y,maxW,lh){const ws=t.split(" ");let l="";for(const w of ws){const tt=l?l+" "+w:w; if(x.measureText(tt).width>maxW&&l){x.fillText(l,X,Y);Y+=lh;l=w}else l=tt} x.fillText(l,X,Y)}
 
@@ -149,5 +189,10 @@ document.head.insertAdjacentHTML("beforeend",`<style>
 .hab.ok .hi{background:var(--good);color:var(--good-ink);font-weight:800}
 .hab .ht{font-weight:700;font-size:14px}.hab .hs{font-size:12px;color:var(--muted)}
 .fun{text-align:center;display:flex;flex-direction:column;gap:6px;align-items:center;background:linear-gradient(160deg,var(--accent-soft),var(--surface))}
+#shsheet{position:fixed;inset:0;z-index:80}
+#shsheet .shbg{position:absolute;inset:0;background:rgba(0,0,0,.55)}
+#shsheet .shbox{position:absolute;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--line);border-radius:24px 24px 0 0;padding:20px 16px calc(20px + env(safe-area-inset-bottom));max-width:640px;margin:0 auto}
+.shopt{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;padding:14px 16px}
+.shopt span{font-size:13px;color:var(--muted);font-weight:500}
 .fun .big{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
 </style>`);
