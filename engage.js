@@ -80,54 +80,69 @@ function sessionPRs(s){let n=0; (s.items||[]).forEach(it=>{const best=bestE1(it.
 /* ---------- imatges per compartir: story amb foto, sticker transparent o post ---------- */
 const FD='"Inter","Inter Display",system-ui,sans-serif';
 async function loadFonts(){try{ if(document.fonts&&document.fonts.load) await Promise.all([document.fonts.load(`800 120px Inter`),document.fonts.load(`italic 800 120px Inter`),document.fonts.load(`600 40px Inter`)]) }catch(e){}}
-// Bloc de contingut (~830 px d'alt) a partir de (X,Y), amplada CW
-function drawBlock(x,s,X,Y,CW){
-  const LS=v=>{try{x.letterSpacing=v}catch(e){}};
-  const acc=x.createLinearGradient(X,0,X+CW,0); acc.addColorStop(0,"#6f9bff"); acc.addColorStop(1,"#34d4ff");
+// Targeta de sessió (920 × 1040), centrada, estil "sessió completada"
+const CARD_H=1130;
+function timesWord(r){const k=Math.round(r); if(Math.abs(r-k)<.15&&k>=1&&k<=10) return ["Una vegada","Dues vegades","Tres vegades","Quatre vegades","Cinc vegades","Sis vegades","Set vegades","Vuit vegades","Nou vegades","Deu vegades"][k-1]; return fn(Math.round(r*10)/10,1)+" vegades"}
+function drawCard(x,s,X,Y,glass){
+  const W=920, cx=X+W/2, LS=v=>{try{x.letterSpacing=v}catch(e){}};
+  const CY="#3ee0ff", acc=x.createLinearGradient(X,0,X+W,0); acc.addColorStop(0,"#6f9bff"); acc.addColorStop(1,"#34d4ff");
   const all=(s.items||[]).flatMap(i=>i.sets||[]), kg=vol(all), prs=sessionPRs(s), f=funFact(kg);
-  x.textBaseline="alphabetic"; x.textAlign="left";
-  LS("-1px"); x.fillStyle="#fff"; x.font=`800 44px ${FD}`; x.fillText("Quadern",X,Y+44);
-  x.fillStyle=acc; x.fillRect(X,Y+60,60,5);
-  LS("0px"); x.fillStyle="rgba(255,255,255,.75)"; x.font=`600 28px ${FD}`;
-  const ds=dt(s.date).toLocaleDateString("ca-ES",{weekday:"long",day:"numeric",month:"long"}); x.textAlign="right"; x.fillText(ds.charAt(0).toUpperCase()+ds.slice(1),X+CW,Y+44); x.textAlign="left";
-  const {tag,title}=(typeof splitName==="function"?splitName(s.name):{tag:"",title:s.name});
-  let fs=100; LS("-4px"); x.fillStyle="#fff";
-  do{ x.font=`800 ${fs}px ${FD}`; fs-=4 }while(x.measureText(title||s.name||"Sessió").width>CW&&fs>56);
-  x.fillText(title||s.name||"Sessió",X,Y+180);
-  if(tag){LS("-2px"); x.font=`italic 800 46px ${FD}`; x.fillStyle=acc; x.fillText(String(tag),X,Y+240)}
-  const stats=[[s.durationSec?String(Math.round(s.durationSec/60)):"–","MINUTS"],[fn(Math.round(kg),0),"KG TOTALS"],[String(prs),prs===1?"RÈCORD":"RÈCORDS"]];
-  const top=Y+290, gap=18, cw=(CW-gap*2)/3;
-  stats.forEach(([v,l],i)=>{const cx=X+i*(cw+gap);
-    x.fillStyle=i===2&&prs?"rgba(62,207,142,.16)":"rgba(255,255,255,.08)"; roundRect(x,cx,top,cw,200,26); x.fill();
-    x.strokeStyle=i===2&&prs?"rgba(62,207,142,.55)":"rgba(255,255,255,.16)"; x.lineWidth=2; x.stroke();
-    let vx=cx+26; if(i===2&&prs){LS("0px"); x.fillStyle="#fff"; x.font=`56px ${FD}`; x.fillText("🏆",vx,top+112); vx+=x.measureText("🏆").width+10}
-    LS("-4px"); x.fillStyle=i===2&&prs?"#5ff0ad":"#fff"; x.font=`800 ${v.length>5?72:88}px ${FD}`; x.fillText(v,vx,top+118);
-    LS("2px"); x.fillStyle="rgba(255,255,255,.65)"; x.font=`600 22px ${FD}`; x.fillText(l,cx+28,top+168)});
-  if(f){LS("0px"); x.fillStyle="rgba(255,255,255,.8)"; x.font=`500 32px ${FD}`; x.fillText(`Avui he aixecat l'equivalent a`,X,Y+570);
-    const EW=190; // animal a la dreta
-    LS("-3px"); x.fillStyle=acc; const ftx=`${fn(f.n,1)} × ${f.t}`; let fz=84; do{x.font=`italic 800 ${fz}px ${FD}`; fz-=4}while(x.measureText(ftx).width>CW-EW-10&&fz>62); wrap(x,ftx,X,Y+665,CW-EW-10,fz+2);
-    LS("0px"); const eg=x.createRadialGradient(X+CW-EW/2,Y+640,10,X+CW-EW/2,Y+640,EW/2+10); eg.addColorStop(0,"rgba(91,140,255,.35)"); eg.addColorStop(1,"rgba(91,140,255,0)");
-    x.fillStyle=eg; x.beginPath(); x.arc(X+CW-EW/2,Y+640,EW/2+10,0,Math.PI*2); x.fill();
-    x.textAlign="center"; x.fillStyle="#fff"; x.font=`150px "Apple Color Emoji","Noto Color Emoji","Segoe UI Emoji",sans-serif`; x.fillText(f.e,X+CW-EW/2,Y+690); x.textAlign="left"}
-  LS("-1px"); x.textAlign="right"; x.fillStyle="#fff"; x.font=`italic 800 34px ${FD}`; x.fillText("Una més.",X+CW,Y+820); x.textAlign="left";
-  LS("0px"); x.fillStyle="rgba(255,255,255,.6)"; x.font=`600 24px ${FD}`; x.fillText(`${all.length} sèries · ${(s.items||[]).length} exercicis`,X,Y+820);
+  if(glass){ x.fillStyle=glass; roundRect(x,X,Y,W,CARD_H,48); x.fill(); x.strokeStyle="rgba(110,160,255,.35)"; x.lineWidth=3; x.stroke() }
+  x.textBaseline="alphabetic";
+  // capçalera: Q + data
+  const AIN=((window.QStore||{}).AI||{name:"Q"}).name;
+  const ag=x.createLinearGradient(X+44,Y+40,X+104,Y+100); ag.addColorStop(0,"#5b8cff"); ag.addColorStop(1,"#34d4ff");
+  x.fillStyle=ag; x.beginPath(); x.arc(X+74,Y+72,30,0,Math.PI*2); x.fill();
+  LS("0px"); x.fillStyle="#fff"; x.textAlign="center"; x.font=`italic 800 32px ${FD}`; x.fillText(AIN,X+74,Y+84);
+  x.textAlign="left"; x.fillStyle=CY; x.font=`600 28px ${FD}`; x.fillText(`Analitzat per ${AIN}`,X+120,Y+82);
+  const ds=dt(s.date).toLocaleDateString("ca-ES",{day:"numeric",month:"short"}); x.textAlign="right"; x.fillStyle="rgba(255,255,255,.55)"; x.font=`600 26px ${FD}`; x.fillText(ds,X+W-44,Y+82);
+  // trofeu
+  x.textAlign="center"; const tg=x.createLinearGradient(cx-75,Y+140,cx+75,Y+290); tg.addColorStop(0,"#34d4ff"); tg.addColorStop(1,"#5b8cff");
+  x.save(); x.shadowColor="rgba(52,212,255,.55)"; x.shadowBlur=40; x.fillStyle=tg; roundRect(x,cx-75,Y+140,150,150,38); x.fill(); x.restore();
+  x.fillStyle="#fff"; x.font=`92px "Apple Color Emoji","Noto Color Emoji","Segoe UI Emoji",sans-serif`; x.fillText("🏆",cx,Y+248);
+  // títol
+  LS("-3px"); x.fillStyle="#fff"; x.font=`800 74px ${FD}`; x.fillText("Sessió completada!",cx,Y+392);
+  const nm=((window.QStore&&QStore.profile&&QStore.profile.name)||"").trim().split(/\s+/)[0];
+  const {title}=(typeof splitName==="function"?splitName(s.name):{title:s.name});
+  LS("0px"); x.fillStyle="rgba(255,255,255,.7)"; x.font=`500 32px ${FD}`; x.fillText([nm,title||s.name].filter(Boolean).join(" · "),cx,Y+444);
+  let sy=Y+490;
+  if(prs){ const t=`🏆 ${prs} ${prs===1?"rècord nou":"rècords nous"}`; x.font=`700 28px ${FD}`; const tw=x.measureText(t).width+48;
+    x.fillStyle="rgba(62,207,142,.18)"; roundRect(x,cx-tw/2,sy,tw,52,26); x.fill(); x.strokeStyle="rgba(62,207,142,.6)"; x.lineWidth=2; x.stroke();
+    x.fillStyle="#5ff0ad"; x.fillText(t,cx,sy+36); sy+=72 } else sy+=20;
+  // xifres
+  const stats=[[s.durationSec?Math.round(s.durationSec/60)+" min":"–","DURACIÓ"],[fn(Math.round(kg),0)+" kg","VOLUM"],[String(all.length),"SÈRIES"]];
+  const gap=18, bw=(W-88-gap*2)/3;
+  stats.forEach(([v,l],i)=>{const bx=X+44+i*(bw+gap);
+    x.fillStyle="rgba(255,255,255,.06)"; roundRect(x,bx,sy,bw,150,24); x.fill(); x.strokeStyle="rgba(255,255,255,.14)"; x.lineWidth=2; x.stroke();
+    LS("-2px"); x.fillStyle=CY; let fz=56; do{x.font=`800 ${fz}px ${FD}`; fz-=2}while(x.measureText(v).width>bw-24&&fz>34); x.fillText(v,bx+bw/2,sy+80);
+    LS("2px"); x.fillStyle="rgba(255,255,255,.6)"; x.font=`600 20px ${FD}`; x.fillText(l,bx+bw/2,sy+120)});
+  sy+=180;
+  // comparació
+  if(f){ const bh=290;
+    x.fillStyle="rgba(52,212,255,.07)"; roundRect(x,X+44,sy,W-88,bh,28); x.fill(); x.strokeStyle="rgba(52,212,255,.35)"; x.lineWidth=2; x.stroke();
+    LS("0px"); x.fillStyle="#fff"; x.font=`84px "Apple Color Emoji","Noto Color Emoji","Segoe UI Emoji",sans-serif`; x.fillText(f.e,cx,sy+104);
+    LS("-2px"); x.font=`800 50px ${FD}`; x.fillText(`${fn(Math.round(kg),0)} kg!`,cx,sy+174);
+    LS("0px"); x.fillStyle="rgba(255,255,255,.75)"; x.font=`500 28px ${FD}`;
+    const w=THINGS.find(t=>t[0]===f.t); x.fillText(`Com aixecar ${f.t} (≈${fn(w?w[1]:0,0)} kg).`,cx,sy+222);
+    x.fillStyle=CY; x.font=`700 28px ${FD}`; x.fillText(`${timesWord(kg/(w?w[1]:1))}.`,cx,sy+262) }
+  // peu
+  LS("0px"); x.textAlign="left"; x.font=`700 28px ${FD}`; const w1=x.measureText("Quadern  ").width; x.font=`italic 800 28px ${FD}`; const w2=x.measureText("Una més.").width; const fx=cx-(w1+w2)/2;
+  x.fillStyle=CY; x.font=`700 28px ${FD}`; x.fillText("Quadern  ",fx,Y+CARD_H-40); x.fillStyle="#fff"; x.font=`italic 800 28px ${FD}`; x.fillText("Una més.",fx+w1,Y+CARD_H-40);
+  x.textAlign="left";
   return {kg,f};
 }
 function bgNavy(x,W,H){let g=x.createLinearGradient(0,0,W,H); g.addColorStop(0,"#0d0f45"); g.addColorStop(1,"#05051c"); x.fillStyle=g; x.fillRect(0,0,W,H);
-  const rg=x.createRadialGradient(W*.9,H*.05,0,W*.9,H*.05,W*.9); rg.addColorStop(0,"rgba(91,140,255,.45)"); rg.addColorStop(1,"rgba(91,140,255,0)"); x.fillStyle=rg; x.fillRect(0,0,W,H);
-  x.strokeStyle="rgba(52,212,255,.16)"; x.lineWidth=60; x.beginPath(); x.arc(W-60,160,260,0,Math.PI*2); x.stroke()}
+  const rg=x.createRadialGradient(W*.9,H*.05,0,W*.9,H*.05,W*.9); rg.addColorStop(0,"rgba(91,140,255,.45)"); rg.addColorStop(1,"rgba(91,140,255,0)"); x.fillStyle=rg; x.fillRect(0,0,W,H)}
 async function makeImage(s,mode,photo){
   await loadFonts();
   const c=document.createElement("canvas"), x=c.getContext("2d"); let info;
-  if(mode==="sticker"){ c.width=1080;c.height=1000;
-    x.fillStyle="rgba(8,9,40,.80)"; roundRect(x,30,30,1020,940,52); x.fill(); x.strokeStyle="rgba(120,160,255,.35)"; x.lineWidth=3; x.stroke();
-    info=drawBlock(x,s,90,80,900);
-  } else if(mode==="story"){ c.width=1080;c.height=1920;
+  if(mode==="sticker"){ c.width=1000;c.height=CARD_H+40; info=drawCard(x,s,40,20,"rgba(10,12,52,.86)") }
+  else if(mode==="story"){ c.width=1080;c.height=1920;
     if(photo){ const sc=Math.max(1080/photo.width,1920/photo.height), w=photo.width*sc, h=photo.height*sc; x.drawImage(photo,(1080-w)/2,(1920-h)/2,w,h);
-      const g=x.createLinearGradient(0,820,0,1920); g.addColorStop(0,"rgba(5,5,28,0)"); g.addColorStop(.35,"rgba(5,5,28,.72)"); g.addColorStop(1,"rgba(5,5,28,.92)"); x.fillStyle=g; x.fillRect(0,820,1080,1100);
-      info=drawBlock(x,s,80,1920-830-150,920);
-    } else { bgNavy(x,1080,1920); info=drawBlock(x,s,80,520,920) }
-  } else { c.width=1080;c.height=1350; bgNavy(x,1080,1350); info=drawBlock(x,s,80,260,920) }
+      const g=x.createLinearGradient(0,700,0,1920); g.addColorStop(0,"rgba(5,5,28,0)"); g.addColorStop(1,"rgba(5,5,28,.55)"); x.fillStyle=g; x.fillRect(0,700,1080,1220);
+      const k=.8; x.save(); x.translate((1080-920*k)/2,1920-CARD_H*k-110); x.scale(k,k); info=drawCard(x,s,0,0,"rgba(10,12,52,.82)"); x.restore();
+    } else { bgNavy(x,1080,1920); info=drawCard(x,s,80,(1920-CARD_H)/2,"rgba(20,24,80,.55)") }
+  } else { c.width=1080;c.height=1350; bgNavy(x,1080,1350); info=drawCard(x,s,80,(1350-CARD_H)/2,"rgba(20,24,80,.55)") }
   const blob=await new Promise(r=>c.toBlob(r,"image/png"));
   return {blob,info};
 }
