@@ -1,7 +1,7 @@
 /* 2UP · funciona sense connexió: guarda l'app i les llibreries al mòbil */
-const V="quadern-v16";
+const V="quadern-v17";
 const CORE=["./","index.html","store.js","coach.js","engage.js","manifest.webmanifest","icon-192.png","icon-512.png","apple-touch-icon.png",
- "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js","https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js"];
+ "vendor/supabase-2.45.4.js","vendor/chart-4.4.1.umd.js"];
 self.addEventListener("install",e=>{e.waitUntil(caches.open(V).then(c=>Promise.all(CORE.map(u=>c.add(u).catch(()=>{})))).then(()=>self.skipWaiting()))});
 self.addEventListener("activate",e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==V).map(k=>caches.delete(k)))).then(()=>self.clients.claim()))});
 self.addEventListener("fetch",e=>{
@@ -20,8 +20,8 @@ self.addEventListener("fetch",e=>{
 
 /* notificacions */
 self.addEventListener("push",e=>{
-  let d={}; try{d=e.data?e.data.json():{}}catch(_){d={title:"Quadern",body:e.data?e.data.text():""}}
-  const n=self.registration.showNotification(d.title||"Quadern",{body:d.body||"",icon:"icon-192.png",badge:"icon-192.png",tag:"q-"+(d.id||Date.now()),data:{url:d.url||"./"}});
+  let d={}; try{d=e.data?e.data.json():{}}catch(_){d={title:"2UP",body:e.data?e.data.text():""}}
+  const n=self.registration.showNotification(d.title||"2UP",{body:d.body||"",icon:"icon-192.png",badge:"icon-192.png",tag:"q-"+(d.id||Date.now()),data:{url:d.url||"./"}});
   const b=(self.navigator&&self.navigator.setAppBadge)?self.navigator.setAppBadge(d.badge||1).catch(()=>{}):Promise.resolve();
   e.waitUntil(Promise.all([n,b]));
 });
