@@ -6,7 +6,7 @@
 const CV=()=>!!(window.QStore&&QStore.viewing);
 const IS_COACH=()=>!!(window.QStore&&QStore.isCoach());
 const IS_CLIENT=()=>!!(window.QStore&&QStore.isClient());
-const COACH_VIEWS=["resum","rutines","pauta","pes","progres","setmana","nutricio","informes"];
+const COACH_VIEWS=["resum","rutines","pauta","pes","progres","setmana","any","nutricio","informes"];
 const CLIENT_HIDDEN=["clients","resum","rutines","pauta"];
 
 /* ---------- pestanyes i capçalera ---------- */
@@ -24,7 +24,7 @@ function renderTabs(){
   if(TABS_OWN==null) TABS_OWN=nav.innerHTML;
   const want=CV()?"cv":"own"; if(nav.dataset.mode===want) return; nav.dataset.mode=want;
   if(want==="own"){nav.innerHTML=TABS_OWN;return}
-  const L={resum:"Resum",rutines:"Rutines",pauta:"Pauta",pes:"Pes",setmana:"Setmana",nutricio:"Kcal",informes:"Informes"};
+  const L={resum:"Resum",rutines:"Rutines",pauta:"Menjar",pes:"Pes",setmana:"Ritme",informes:"Informes"};
   nav.innerHTML=Object.keys(L).map(k=>`<a href="#${k}" data-v="${k}"><svg viewBox="0 0 24 24">${ICO[k]}</svg>${L[k]}</a>`).join("");
 }
 function cvTop(){

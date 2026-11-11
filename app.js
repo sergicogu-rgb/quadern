@@ -134,7 +134,8 @@ let toastT; function toast(m){const t=$("#toast");t.textContent=m;t.hidden=false
 function route(){
   let h=location.hash.slice(1); h=ALIAS[h]||h; h=VIEWS.includes(h)?h:"avui"; cur=allowView(h); renderTabs();
   VIEWS.forEach(v=>{$("#v-"+v).hidden=v!==cur});
-  document.querySelectorAll(".tabs a").forEach(a=>{ if(a.dataset.v===cur) a.setAttribute("aria-current","page"); else a.removeAttribute("aria-current"); });
+  const tabV=(groupOf(cur)||[cur])[0];
+  document.querySelectorAll(".tabs a").forEach(a=>{ if(a.dataset.v===tabV) a.setAttribute("aria-current","page"); else a.removeAttribute("aria-current"); });
   closeSheet(); render(); window.scrollTo(0,0);
 }
 window.addEventListener("hashchange",route);
@@ -842,6 +843,16 @@ function tick(){
 setInterval(tick,500);
 if(draft.startedAt) wake();
 route(); renderPend();
+/* ---------- GRUPS DE PESTANYES: una pestanya a la barra i un selector a dalt de la vista ---------- */
+function GROUPS(){return (typeof CV==="function"&&CV())?[["rutines","progres"],["pauta","nutricio"],["setmana","any"]]:[["avui","progres"],["setmana","any"]]}
+const SUBLBL={avui:"Entrenament",rutines:"Rutines",progres:"Progrés",setmana:"Setmana",any:"Any",pauta:"Pauta",nutricio:"Kcal"};
+function groupOf(v){return GROUPS().find(g=>g.includes(v))||null}
+function subNav(v){const g=groupOf(v); if(!g) return ""; if(v==="avui"&&(inWorkout()||lastSaved)) return "";
+  return `<nav class="subnav" aria-label="Apartats">${g.map(x=>`<a href="#${x}" class="${x===v?"on":""}"${x===v?' aria-current="page"':""}>${SUBLBL[x]}</a>`).join("")}</nav>`}
+{const FN={renderAvui:"avui",renderProgres:"progres",renderSetmana:"setmana",renderAny:"any",renderRutines:"rutines",renderPauta:"pauta",renderNutricio:"nutricio"};
+ Object.keys(FN).forEach(n=>{const f=window[n]; if(typeof f!=="function") return;
+  window[n]=function(){const r=f.apply(this,arguments); const el=document.getElementById("v-"+FN[n]);
+    if(el&&!el.querySelector(":scope > .subnav")){const s=subNav(FN[n]); if(s) el.insertAdjacentHTML("afterbegin",s)} return r}});}
 if(window.QStore) QStore.on("_view",()=>{ lastSaved=null; progEx=null; nutShow=null; repWeek=null; pe=null; Object.keys(S).forEach(k=>S[k]=[]); route(); });
 (async()=>{
   const timer=setTimeout(()=>setStatus("Encara no es poden carregar les dades. Revisa la connexió; el que vegis pot no estar actualitzat."),10000);
