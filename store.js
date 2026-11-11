@@ -298,7 +298,7 @@
   function showConsent(editing){
     const cur=Q.consent;
     if(!screen(`<h1>Protecció de dades</h1><p class="sub">${cur&&!editing?"Hem actualitzat el servei: ara inclou un entrenador IA. Llegeix-ho i accepta-ho per continuar.":"Abans de començar, llegeix com es tracten les teves dades."}</p>${Q.consentText()}
-      <form id="cs-form" class="stack">
+      <form id="cs-form" class="stack" novalidate>
         <label class="chkl"><input type="checkbox" id="cs-adult" ${editing?"checked disabled":""} required> Tinc 18 anys o més.</label>
         <label class="chkl"><input type="checkbox" id="cs-health" ${editing?"checked disabled":""} required> Consenteixo expressament el tractament de les meves dades de salut per a aquestes finalitats.</label>
         <label class="chkl"><input type="checkbox" id="cs-ai" ${editing?"checked disabled":""} required> Accepto que ${esc(AI.name)} (intel·ligència artificial) analitzi les meves dades per proposar-me entrenaments i pautes, sempre revisades pel meu entrenador.</label>

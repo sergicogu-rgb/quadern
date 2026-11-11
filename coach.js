@@ -128,6 +128,10 @@ document.addEventListener("click",async e=>{
 const PHASES={def:{t:"Definició",lo:-1,hi:-0.5},vol:{t:"Volum net",lo:0.25,hi:0.5},rec:{t:"Recomposició",lo:-0.25,hi:0.25},man:{t:"Manteniment",lo:-0.25,hi:0.25}};
 const phaseOf=txt=>{const t=String(txt||"").toLowerCase(); return /defin|cut/.test(t)?"def":/volum|bulk/.test(t)?"vol":/recomp/.test(t)?"rec":"man"};
 let repWeek=null;
+/* Primer dia del client (fitxa, primera sessió o primer pes): els resums no van més enrere */
+function startISO(){const ik=(S.intake||[]).find(x=>x.id==="inicial");
+  const c=[ik&&String(ik.createdAt||"").slice(0,10),...S.sessions.map(s=>s.date),...bwData().map(x=>x.date)].filter(Boolean).sort(); return c[0]||todayISO()}
+function defWeek(){const cur=weekStart(todayISO()), last=addDays(cur,-7); return last<weekStart(startISO())?cur:last}
 function pautaAt(iso){let a=null; pautes().forEach(x=>{if(x.from<=iso)a=x}); return a}
 function autoReport(ws){
   const we=addDays(ws,6), pws=addDays(ws,-7), pwe=addDays(ws,-1);
@@ -150,23 +154,29 @@ function autoReport(ws){
   const P=pautaAt(we), tg=P&&P.targets?P.targets.kcal:null, ph=PHASES[phaseOf(P&&(P.phase||P.title))];
   const nT=S.templates.length;
   const notes=ses.map(s=>s.notes||"").filter(n=>/mol[eè]st|dolor|lesi|mal d|tib|punxada/i.test(n));
-  const flags=[];
+  const flags=[], live=ws===weekStart(todayISO());
+  if(live){
+    flags.push(`Setmana en curs: ${ses.length} ${ses.length===1?"sessió feta":"sessions fetes"}${nT?" de "+nT:""}${nT&&ses.length<nT?" · en queden "+(nT-ses.length):nT?" · objectiu complert 💪":""}.`);
+    flags.push(`Pes: ${wB.length} ${wB.length===1?"dia apuntat":"dies apuntats"} (l'objectiu és 4 o més per tenir una mitjana fiable).`);
+  } else {
   flags.push(`${ses.length} sessions${nT?" de "+nT+" rutines":""}${nT&&ses.length<nT?" · falten "+(nT-ses.length):""}.`);
   if(wB.length<4) flags.push(`Només ${wB.length}/7 dies de pes: la mitjana és poc fiable (es recomanen 4 o més).`);
+  }
   if(dPct!=null&&ph){const ok=dPct>=ph.lo-0.05&&dPct<=ph.hi+0.05;
     flags.push(`Pes ${dPct>0?"+":""}${fn(dPct,2)} % vs setmana anterior. Objectiu ${ph.t.toLowerCase()}: ${fn(ph.lo,2)} a ${fn(ph.hi,2)} %/setm. ${ok?"✓ Dins del ritme.":dPct<ph.lo?"Baixa massa ràpid.":dPct>ph.hi?"Puja massa ràpid o no baixa.":""}`)}
-  if(kc.length<5) flags.push(`Kcal registrades ${kc.length}/7 dies: amb menys de 5 no es pot calibrar el manteniment.`);
+  if(live) flags.push(`Kcal: ${kc.length} ${kc.length===1?"dia apuntat":"dies apuntats"} (amb 5 o més per setmana podem calibrar el teu manteniment).`);
+  else if(kc.length<5) flags.push(`Kcal registrades ${kc.length}/7 dies: amb menys de 5 no es pot calibrar el manteniment.`);
   if(kA&&tg){const d=(kA-tg)/tg*100; flags.push(`Kcal mitjanes ${fn(kA,0)} vs pauta ${fn(tg,0)} (${d>0?"+":""}${fn(d,0)} %).${Math.abs(d)>10?" Desviació important.":""}`)}
   if(up+same+down) flags.push(`Rendiment: ${up} exercicis milloren, ${same} igual, ${down} baixen (1RM estimat vs la vegada anterior).`);
   if(notes.length) flags.push(`Hi ha ${notes.length} nota${notes.length>1?"es":""} amb molèsties: revisa-les.`);
   return {ws,we,ses,sets,byM,prs,bwA,dPct,wBn:wB.length,kA,kn:kc.length,tg,flags,P};
 }
 function autoReportCard(){
-  const lastFull=addDays(weekStart(todayISO()),-7); const ws=repWeek||lastFull; const r=autoReport(ws);
-  const cur=weekStart(todayISO());
+  const ws=repWeek||defWeek(); const r=autoReport(ws);
+  const cur=weekStart(todayISO()), first=weekStart(startISO());
   const muscles=Object.entries(r.byM).sort((a,b)=>b[1]-a[1]);
   return `<article class="card stack report"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
-      <button class="plain" data-rw="-7" aria-label="Setmana anterior">‹</button>
+      <button class="plain" data-rw="-7" aria-label="Setmana anterior" ${ws<=first?"disabled":""}>‹</button>
       <div style="text-align:center"><span class="lbl">Resum automàtic${ws===cur?" · en curs":""}</span><h3 style="margin:2px 0 0">${esc(fdate(r.ws,{day:"numeric",month:"short"}))} – ${esc(fdate(r.we,{day:"numeric",month:"short"}))}</h3></div>
       <button class="plain" data-rw="7" aria-label="Setmana següent" ${ws>=cur?"disabled":""}>›</button></div>
     <div class="tiles"><div class="tile"><div class="lbl">Sessions</div><div class="v">${r.ses.length}<small> · ${r.sets.length} sèries</small></div></div>
@@ -177,8 +187,25 @@ function autoReportCard(){
     ${r.prs.length?`<details><summary class="lbl" style="cursor:pointer">Rècords (${r.prs.length})</summary><div class="tw"><table><tbody>${r.prs.map(p=>`<tr><td>${esc(p.name)}</td><td class="r num">${p.sets.map(x=>fn(x.kg,2)+"×"+x.reps).join(" · ")}</td></tr>`).join("")}</tbody></table></div></details>`:""}
   </article>`;
 }
+/* Primer informe: com funciona l'app (el veu el client des del primer dia, al final de la llista d'informes) */
+function welcomeReport(){
+  const ai=((window.QStore||{}).AI||{name:"Atlas"}).name, st=startISO();
+  const sec=(ico,t,body)=>`<div class="wr-sec"><span class="wr-ico" aria-hidden="true">${ico}</span><div><b>${t}</b><p>${body}</p></div></div>`;
+  return `<article class="card report stack welcome-rep"><span class="lbl">Setmana del ${esc(fdate(weekStart(st),{day:"numeric",month:"long"}))} · Benvinguda</span>
+    <h3 style="margin:0">Com funciona 2UP</h3>
+    <p class="sub" style="margin:0">El teu entrenador et prepara el pla i tu només has d'apuntar el que fas. Amb aquestes dades, cada setmana ajustem càrregues i alimentació.</p>
+    ${sec("🏋️","Avui","Si toca entrenar, hi veuràs la rutina amb les càrregues proposades. Prem <b>Començar</b>, apunta kg i repeticions i toca ✓ en acabar cada sèrie. Els dies de descans t'ho indica i et recorda els hàbits del dia.")}
+    ${sec("📈","Com progressem","Cada exercici té un rang de repeticions (per exemple 8–12). Quan arribes al màxim del rang a totes les sèries deixant-ne 2-3 a la recambra (RIR), l'app et proposa pujar el pes la vegada següent.")}
+    ${sec("⚖️","Pes","Pesa't cada matí en dejú, després d'anar al lavabo. Compta la mitjana de la setmana, no el número d'un dia.")}
+    ${sec("🍽️","Menjar","Hi tens la pauta amb els àpats i les equivalències de cada aliment. Apunta les kcal de cada dia (també l'àpat lliure): amb 14 dies de registre calculem el teu manteniment real.")}
+    ${sec("📊","Progrés, Setmana i Any","El 1RM estimat de cada exercici, la teva setmana i la constància de tot l'any.")}
+    ${sec("📝","Informes","Aquí tens el resum automàtic de cada setmana i els informes del teu entrenador. "+esc(ai)+", l'entrenador IA, analitza les teves dades i proposa ajustos; el teu entrenador els revisa sempre abans que t'arribin.")}
+    ${sec("⚙︎","Ajustos","Activa les notificacions i afegeix l'app a la pantalla d'inici. Des d'aquí també pots descarregar o esborrar les teves dades.")}
+    ${(planDoc()||{}).status==="provisional"?`<div class="note" style="margin:0">Els primers dies la rutina i la pauta són <b>provisionals</b>: les ha preparat l'app amb la teva fitxa i el teu entrenador les revisa en menys de 24 h.</div>`:""}
+  </article>`;
+}
 document.addEventListener("click",e=>{const b=e.target.closest("button[data-rw]"); if(!b) return;
-  const cur=weekStart(todayISO()); let ws=addDays(repWeek||addDays(cur,-7),+b.dataset.rw); if(ws>cur) ws=cur; repWeek=ws; render();});
+  const cur=weekStart(todayISO()); let ws=addDays(repWeek||defWeek(),+b.dataset.rw); if(ws>cur) ws=cur; const first=weekStart(startISO()); if(ws<first) ws=first; repWeek=ws; render();});
 
 /* ---------- RESUM DEL CLIENT (vista de l'entrenador) ---------- */
 function renderResum(){
@@ -457,10 +484,19 @@ const PARQ=["Algun metge t'ha dit que tens un problema de cor o la pressió alta
   "Algun metge t'ha dit que només facis activitat física supervisada?"];
 const intakeDoc=()=>(S.intake||[]).find(x=>x.id==="inicial")||null;
 const ageFrom=b=>{if(!b) return null; const d=new Date(b), n=new Date(); let a=n.getFullYear()-d.getFullYear(); if(n<new Date(n.getFullYear(),d.getMonth(),d.getDate())) a--; return a};
-let fx=null, fxEdit=false;
-function needIntake(){ return IS_CLIENT()&&!CV()&&!!(QStore.lastSync||QStore.synced)&&ready.intake&&!intakeDoc() }
+let fx=null, fxEdit=false, fxBlank=false;
+/* Un cop vista la fitxa d'aquest usuari, no tornem a obligar-lo a omplir-la (evita salts per una lectura buida transitòria) */
+const intakeSeen=()=>{try{return localStorage.getItem("q_intake_ok")===QStore.uid}catch(e){return false}};
+function needIntake(){
+  if(!IS_CLIENT()||CV()) return false;
+  if(intakeDoc()){ if(!intakeSeen()) try{localStorage.setItem("q_intake_ok",QStore.uid)}catch(e){} return false }
+  if(intakeSeen()||(typeof inWorkout==="function"&&inWorkout())) return false;
+  return !!(QStore.lastSync||QStore.synced)&&ready.intake;
+}
 function renderFitxa(){
   const el=$("#v-fitxa"); const d=intakeDoc();
+  if(fx&&fxBlank&&d) fx=null; /* la fitxa ha arribat després d'obrir-la buida: carregar-la */
+  if(!fx) fxBlank=!d;
   if(!fx) fx=JSON.parse(JSON.stringify(d||{sex:"",birth:"",cm:null,kg:null,goal:"",exp:"",days:3,minutes:60,place:"Gimnàs",pal:1.55,injuries:"",medical:"",parq:PARQ.map(()=>null),allergies:"",dislikes:"",meals:4,trainTime:"",notes:""}));
   if(!fx.parq||fx.parq.length!==PARQ.length) fx.parq=PARQ.map((_,i)=>(fx.parq||[])[i]??null);
   const sel=(k,arr)=>`<select data-fx="${k}"><option value="">Tria…</option>${arr.map(o=>{const v=Array.isArray(o)?o[0]:o,l=Array.isArray(o)?o[1]:o;return `<option value="${esc(v)}" ${String(fx[k])===String(v)?"selected":""}>${esc(l)}</option>`}).join("")}</select>`;
@@ -548,6 +584,33 @@ function docLine(d){
   if(d.col==="exercises") return `<tr><td>${lbl||"Exercici"}</td><td class="r">${esc(x.name||d.id)}${(x.ranges||[]).length?" · "+x.ranges.map(r=>r.min+"-"+r.max).join(", "):""}</td></tr>`;
   return `<tr><td>${lbl||esc(d.col)}</td><td class="r">${esc(x.title||x.name||d.id)}</td></tr>`;
 }
+/* Edició d'una proposta abans d'aprovar-la: còpia local dels canvis, quins s'inclouen i l'estat previ del client per poder desfer */
+const propEd={};
+function propState(p){const docs=(p.payload&&p.payload.docs)||[];
+  if(!propEd[p.id]) propEd[p.id]={orig:JSON.stringify(docs),docs:JSON.parse(JSON.stringify(docs)),on:docs.map(()=>true)}; return propEd[p.id]}
+function propDirty(p){const e=propEd[p.id]; return !!e&&(e.on.some(x=>!x)||JSON.stringify(e.docs)!==e.orig)}
+function docEdit(p,k){
+  const e=propState(p), d=e.docs[k], x=d.data||{}, on=e.on[k], key=`${p.id}|${k}`;
+  const inp=(path,val,w,lbl)=>`<label class="pe-f"><span>${lbl}</span><input data-ped="${key}|${path}" inputmode="decimal" value="${esc(val??"")}" style="width:${w}px" ${on?"":"disabled"}></label>`;
+  let body="";
+  if(on&&d.col==="targets") body=`<div class="pe-sets">${(x.sets||[]).map((st,j)=>`<span class="pe-set"><b>${j+1}</b>${inp(`sets.${j}.kg`,st.kg,62,"kg")}${inp(`sets.${j}.reps`,st.reps,48,"reps")}</span>`).join("")}</div>`;
+  else if(on&&d.col==="nutrition"){const t=x.targets||{}; body=`<div class="pe-sets">${inp("targets.kcal",t.kcal,70,"kcal")}${inp("targets.p",t.p,52,"P g")}${inp("targets.c",t.c,52,"HC g")}${inp("targets.g",t.g,52,"G g")}</div>`}
+  const head=docLine(d).replace(/^<tr><td>/,"").replace(/<\/td><\/tr>$/,"").split("</td><td class=\"r num\">").join(" · ").split("</td><td class=\"r\">").join(" · ");
+  return `<div class="pe-doc ${on?"":"off"}"><label class="chkl" style="margin:0"><input type="checkbox" data-pinc="${key}" ${on?"checked":""}> <span style="font-size:14px">${head}</span></label>${body}</div>`;
+}
+const setPath=(o,path,v)=>{const ks=path.split("."); let c=o; ks.slice(0,-1).forEach((k,i)=>{if(c[k]==null) c[k]=/^\d+$/.test(ks[i+1])?[]:{}; c=c[k]}); c[ks[ks.length-1]]=v};
+document.addEventListener("change",e=>{const t=e.target;
+  if(t.dataset&&t.dataset.pinc){const [pid,k]=t.dataset.pinc.split("|"); const ed=propEd[pid]; if(ed){ed.on[+k]=t.checked; render()} return}
+  if(t.dataset&&t.dataset.ped){const [pid,k,path]=t.dataset.ped.split("|"); const ed=propEd[pid]; if(!ed) return; const v=num(t.value); if(v==null) return;
+    setPath(ed.docs[+k].data=ed.docs[+k].data||{},path,v); render()}});
+/* Després d'aprovar: escriu la versió editada i desfà els canvis desmarcats (estat previ del client) */
+async function applyPropEdits(pid,before){
+  const ed=propEd[pid]; if(!ed) return 0; let n=0; const orig=JSON.parse(ed.orig);
+  for(let k=0;k<ed.docs.length;k++){const d=ed.docs[k], ref=db.collection(d.col).doc(d.id);
+    if(!ed.on[k]){const b=before[k]; if(b){const {id:_,...rest}=b; await ref.set(rest)} else await ref.delete(); n++}
+    else if(JSON.stringify(d)!==JSON.stringify(orig[k])){await ref.set(d.data); n++}}
+  delete propEd[pid]; return n;
+}
 function proposalsCard(){
   const v=QStore.viewing; if(!v) return "";
   if(prop.for!==v.id){ if(!prop.busy){prop={for:v.id,list:null,err:null,busy:false}; loadProposals(v.id)} return `<div class="note">🤖 Carregant propostes de ${esc(AIN())}…</div>`}
@@ -557,10 +620,10 @@ function proposalsCard(){
     return `<article class="card stack" style="border:1.5px solid var(--accent)">
       <div><span class="lbl">🤖 Proposta de ${esc(AIN())} · ${esc(ago(p.created_at))}</span><h3 style="margin:4px 0 0">${esc(p.title)}</h3></div>
       ${p.summary?`<details open><summary class="lbl" style="cursor:pointer">Per què (només ho veus tu)</summary><div class="report">${md(p.summary)}</div></details>`:""}
-      ${docs.length?`<details ${docs.length<=12?"open":""}><summary class="lbl" style="cursor:pointer">Canvis que s'aplicaran (${docs.length})</summary><div class="tw"><table><tbody>${docs.map(docLine).join("")}</tbody></table></div></details>`:""}
+      ${docs.length?`<details open><summary class="lbl" style="cursor:pointer">Canvis que s'aplicaran (${docs.length}) · els pots editar</summary><div class="stack pedit" style="gap:8px;margin-top:8px">${docs.map((d,k)=>docEdit(p,k,d)).join("")}</div>${propDirty(p)?`<p class="sub" style="font-size:12px;color:var(--accent)">✏️ Has fet canvis: s'aplicarà la teva versió.</p>`:""}</details>`:""}
       <label class="f"><span class="lbl">Missatge per al client (el pots editar; buit = no s'envia)</span><textarea id="pm-${p.id}" rows="6">${esc(p.message||"")}</textarea></label>
       <div class="btns" style="margin:0"><button class="primary" data-pok="${p.id}">Aprovar i enviar</button><button class="danger" data-pno="${p.id}">Rebutjar</button></div>
-      <p class="sub" style="font-size:12px">En aprovar, els canvis s'escriuen al client i rep el missatge amb una notificació. Després els pots retocar a Rutines o Pauta.</p></article>`}).join("");
+      <p class="sub" style="font-size:12px">En aprovar, els canvis marcats s'escriuen al client i rep el missatge amb una notificació. Després també els pots retocar a Rutines o Pauta.</p></article>`}).join("");
 }
 document.addEventListener("click",async e=>{
   const b=e.target.closest("button[data-pok],button[data-pno]"); if(!b||!CV()) return;
@@ -568,9 +631,11 @@ document.addEventListener("click",async e=>{
   if(!ok&&b.dataset.c!=="1"){b.dataset.c="1";b.textContent="Confirma: rebutjar";return}
   b.disabled=true;
   try{
-    const ta=document.getElementById("pm-"+id);
-    const r=await QStore.rpc("proposal_decide",{pid:id,approve:ok,msg:ta?ta.value:null,note:null});
-    toast(ok?`Aprovada · ${r.docs||0} canvis aplicats`:"Proposta rebutjada");
+    const ta=document.getElementById("pm-"+id), P=(prop.list||[]).find(x=>x.id===id);
+    const dirty=ok&&P&&propDirty(P), before=dirty?propEd[id].docs.map(d=>(S[d.col]||[]).find(x=>x.id===d.id)||null).map(x=>x?JSON.parse(JSON.stringify(x)):null):null;
+    const r=await QStore.rpc("proposal_decide",{pid:id,approve:ok,msg:ta?ta.value:null,note:dirty?"Editada per l'entrenador abans d'aprovar":null});
+    const m=dirty?await applyPropEdits(id,before):0; if(!ok) delete propEd[id];
+    toast(ok?`Aprovada · ${r.docs||0} canvis aplicats${m?` (${m} amb la teva versió)`:""}`:"Proposta rebutjada");
     prop.for=null; await QStore.sync(); render();
   }catch(err){b.disabled=false; toast("No s'ha pogut: "+err.message)}
 });

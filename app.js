@@ -144,7 +144,8 @@ function render(){
   dirty=false;
   renderTop();
   const wo=cur==="avui"&&inWorkout()&&!lastSaved;
-  $("#tabs").hidden=wo; $("#wobar").hidden=!wo;
+  const firstIntake=cur==="fitxa"&&typeof intakeDoc==="function"&&IS_CLIENT()&&!intakeDoc();
+  $("#tabs").hidden=wo||firstIntake; $("#wobar").hidden=!wo;
   ({avui:renderAvui,pes:renderPes,progres:renderProgres,setmana:renderSetmana,any:renderAny,nutricio:renderNutricio,informes:renderInformes,clients:renderClients,resum:renderResum,rutines:renderRutines,pauta:renderPauta,fitxa:renderFitxa})[cur]();
   tick();
 }
@@ -185,6 +186,23 @@ function autoLoad(){
   if(draft.sig===sig&&draft.items.length&&draft.date===todayISO()) return;
   draft.sig=sig; loadTemplate(n); saveDraft();
 }
+/* ---------- DIA DE DESCANS ---------- */
+function isRestDay(d){const x=weekAgenda(weekStart(d)).find(y=>y.d===d); return !!x&&!x.sess.length&&!x.tpl}
+function nextTrainDay(d){for(let k=1;k<=14;k++){const n=addDays(d,k), x=weekAgenda(weekStart(n)).find(y=>y.d===n); if(x&&x.tpl) return n} return null}
+const restKey=d=>"q_rest_"+d;
+function restDone(d){try{return JSON.parse(localStorage.getItem(restKey(d))||"[]")}catch(e){return []}}
+function restCard(d){
+  const done=restDone(d), P=typeof activePauta==="function"?activePauta():null, prot=P&&P.targets&&P.targets.p;
+  const goals=[["steps","🚶","10.000 passes","Camina, puja escales, mou-te"],["water","💧","Aigua","2-3 litres al llarg del dia"],
+    ["food","🥩","Proteïna",prot?`${fn(prot,0)} g, com un dia d'entrenament`:"Segueix la pauta també avui"],["sleep","😴","Dormir","7-9 hores per recuperar"]];
+  const nx=nextTrainDay(d);
+  return `<section class="rest-day" aria-label="Dia de descans">
+    <div class="rd-top"><span class="rd-moon" aria-hidden="true">🌙</span><div><span class="lbl">Dia de descans</span><h2>Avui toca <em>recuperar</em></h2></div></div>
+    <p class="rd-txt">El múscul es construeix mentre descanses. Avui no hi ha entrenament: mou-te, menja bé i dorm.</p>
+    <div class="rd-goals">${goals.map(([k,ico,t,sub])=>{const ok=done.includes(k);return `<button type="button" class="rdg ${ok?"ok":""}" data-rest="${k}" aria-pressed="${ok}"><span class="rdi">${ok?"✓":ico}</span><b>${t}</b><small>${sub}</small></button>`}).join("")}</div>
+    <div class="rd-foot"><span class="sub">${nx?`Pròxim entrenament: <b>${esc(fdate(nx,{weekday:"long",day:"numeric"}))}</b>`:""}</span><button type="button" class="plain" id="rd-train">Entrenar igualment</button></div>
+  </section>`;
+}
 function renderAvui(){
   if(lastSaved) return renderSummary();
   if(inWorkout()) return renderWorkout();
@@ -193,8 +211,11 @@ function renderAvui(){
   const doneToday=S.sessions.filter(s=>s.date===today);
   let h=`<div class="hello"><span class="lbl">${esc(dayLabel())}${doneToday.length?" · propera sessió":""}</span><h1>${typeof greetHTML==="function"?greetHTML():(doneToday.length?"Propera sessió":"Avui toca")}</h1></div><div class="stack">${typeof avuiTop==="function"?avuiTop():""}${typeof planBanner==="function"?planBanner():""}`;
   doneToday.forEach(s=>{h+=`<div class="done-banner"><span class="ok">✓</span><div><b>${esc(s.name)}</b><div class="sub">Feta avui${s.durationSec?" · "+fmtDur(s.durationSec):""} · ${fn(vol((s.items||[]).flatMap(i=>i.sets))/1000,1)} t</div></div><button data-share-s="${esc(s.id)}" style="margin-left:auto;flex-shrink:0">📤 Story</button></div>`});
+  const rest=!doneToday.length&&tpls.length&&!(draft.manual&&draft.date===today)&&isRestDay(today);
   if(!ready.templates&&!tpls.length) h+=`<div class="empty"><b>Carregant…</b>Un moment, s'estan llegint les teves rutines.</div>`;
-  else if(!tp||!draft.items.length) h+=`<div class="empty"><b>Cap rutina carregada</b>Quan el teu entrenador hi afegeixi les rutines, aquí sortirà la que et toca.</div>`;
+  else if(rest) h+=restCard(today);
+  else if(!tpls.length) h+=`<div class="empty"><b>Encara no tens rutines</b>El teu entrenador te les està preparant. Quan hi siguin, aquí veuràs la que et toca cada dia.</div>`;
+  else if(!tp||!draft.items.length) h+=`<div class="empty"><b>Carregant la rutina…</b></div>`;
   else{
     const {tag,title}=splitName(tp.name); const plan=planSession(draft.items.map(x=>x.exId),null);
     const lastT=sessionsSorted().find(s=>s.templateId===tp.id&&s.durationSec);
@@ -205,7 +226,7 @@ function renderAvui(){
         return `<li><span class="k">${k+1}</span><span class="txt"><span class="nm">${esc(ex.name)}</span><span class="tg num">${p?p.sets.map(x=>fn(x.kg,2)+"×"+x.reps).join(" · "):"primera vegada"}</span></span><span class="bd ${d}">${d==="up"?"↑":d==="down"?"↓":d==="same"?"=":"·"}</span></li>`}).join("")}</ol>
       <button class="go" id="h-start">▶ Començar</button></div>`;
   }
-  if(tpls.length>1) h+=`<div><span class="lbl">Canviar rutina</span><div class="chips" style="margin-top:8px">${tpls.map(t=>`<button data-tpl="${esc(t.id)}" class="${t.id===draft.templateId?"on":""}">${esc(splitName(t.name).tag||t.name)}</button>`).join("")}</div></div>`;
+  if(tpls.length>1&&!rest) h+=`<div><span class="lbl">Canviar rutina</span><div class="chips" style="margin-top:8px">${tpls.map(t=>`<button data-tpl="${esc(t.id)}" class="${t.id===draft.templateId?"on":""}">${esc(splitName(t.name).tag||t.name)}</button>`).join("")}</div></div>`;
   h+=weightQuick()+(typeof habitsCard==="function"?habitsCard():"")+miniWeek()+`</div>`;
   el.innerHTML=h;
 }
@@ -224,6 +245,9 @@ function miniWeek(){
 $("#v-avui").addEventListener("click",async e=>{
   const b=e.target.closest("button"); if(!b) return;
   if(b.closest(".wo")) return woClick(e,b);
+  if(b.dataset.rest){ const d=todayISO(), l=restDone(d), k=b.dataset.rest; const n=l.includes(k)?l.filter(x=>x!==k):[...l,k];
+    try{localStorage.setItem(restKey(d),JSON.stringify(n))}catch(err){} render(); return }
+  if(b.id==="rd-train"){ const n=nextTemplate(tplsSorted()); if(n){ loadTemplate(n); draft.manual=true; draft.touched=false; saveDraft(); render(); } return }
   if(b.id==="h-start"){ draft.startedAt=new Date().toISOString(); draft.cur=0; draft.date=todayISO(); saveDraft(); unlockAudio(); wake(); render(); window.scrollTo(0,0); return }
   if(b.dataset.tpl){ const tp=S.templates.find(t=>t.id===b.dataset.tpl); if(tp){ loadTemplate(tp); draft.manual=true; draft.touched=false; saveDraft(); render(); } return }
   if(b.dataset.bw){ const i=$("#q-kg"); const v=(num(i.value)??num(i.placeholder)??0)+ +b.dataset.bw; i.value=fin(Math.round(v*10)/10); return }
@@ -234,6 +258,7 @@ $("#v-avui").addEventListener("click",async e=>{
 $("#v-avui").addEventListener("input",e=>{ if(e.target.closest(".wo")) woInput(e) });
 
 /* ---------- MODE SESSIÓ ---------- */
+const rirTarget=()=>{const p=typeof planDoc==="function"?planDoc():null; const m=/RIR\s*([\d–-]+)/.exec((p&&p.rir)||""); return m?m[1]:""};
 function exState(it){const n=it.sets.length,d=it.sets.filter(s=>s.done).length;return n&&d===n?"done":d?"part":""}
 function renderWorkout(){
   const el=$("#v-avui"); const n=draft.items.length;
@@ -247,16 +272,16 @@ function renderWorkout(){
    ${ex.photo?`<button class="photo has" data-act="photo" aria-label="Foto de ${esc(ex.name)}"><img src="${esc(ex.photo)}" alt=""></button>`:`<button class="photo small" data-act="photo">＋ Afegeix una foto de la màquina</button>`}
    <div class="exhead"><div><span class="lbl">Exercici ${i+1} de ${n}</span><h2>${esc(ex.name)}</h2><span class="chip">${esc(ex.muscle||"")}</span></div><button class="plain" data-act="opts" aria-label="Opcions de l'exercici" style="font-size:22px;line-height:1">⋯</button></div>
    ${why?`<div class="why ${d==="up"?"upg":d==="down"?"dn":""}">${why}</div>`:""}
-   <div class="last">${prev?`Última vegada · ${esc(fdate(prev.date,{day:"numeric",month:"short"}))}: <b class="num">${prev.sets.map(setStr).join(" · ")}</b>`:"Primera vegada que el registres."}</div>
+   <div class="last">${prev?`Última vegada · ${esc(fdate(prev.date,{day:"numeric",month:"short"}))}: <b class="num">${prev.sets.map(setStr).join(" · ")}</b>`:(pp?"Primera vegada que el registres.":`<b>Primera vegada.</b> Tria un pes amb què puguis fer ${c.rng(0).min}–${c.rng(0).max} repeticions deixant-ne ${rirTarget()||"2-3"} a la recambra. La propera vegada l'app et proposarà la càrrega.`)}</div>
    <div class="sets"><div class="sethead"><span>Sèrie</span><span>kg</span><span>Reps</span><span></span></div>
    ${it.sets.map((s,j)=>{const r=c.rng(j);return `<div class="setrow ${s.done?"done":""}" data-s="${j}">
-      <div class="sn"><b>${j+1}</b><small>${r.min}–${r.max}</small><button data-act="rir" class="${s.rir?"on":""}" aria-label="RIR">RIR ${s.rir||0}</button></div>
+      <div class="sn"><b>${j+1}</b><small>${r.min}–${r.max}</small><button data-act="rir" class="${s.rir?"on":""}" aria-label="Repeticions a la recambra (RIR): toca per apuntar-les">RIR ${s.rir?s.rir:"–"}</button></div>
       <div class="step"><button data-act="dec" data-f="kg" aria-label="Menys kg">−</button><input id="kg-${i}-${j}" class="${s.t?"t":""}" data-f="kg" inputmode="decimal" value="${fin(s.kg)}" placeholder="kg" aria-label="kg sèrie ${j+1}"><button data-act="inc" data-f="kg" aria-label="Més kg">+</button></div>
       <div class="step"><button data-act="dec" data-f="reps" aria-label="Menys reps">−</button><input id="reps-${i}-${j}" class="${s.t?"t":""}" data-f="reps" inputmode="numeric" value="${fin(s.reps)}" placeholder="reps" aria-label="Reps sèrie ${j+1}"><button data-act="inc" data-f="reps" aria-label="Més reps">+</button></div>
       <button class="chk" data-act="chk" aria-label="Sèrie ${j+1} feta">✓</button>${s.done?cmpHTML(it.exId,j,s,lastChk&&lastChk.i===i&&lastChk.j===j):""}</div>`}).join("")}
    </div>
    <div class="row"><button class="ghost" data-act="addset">+ Sèrie</button>${it.sets.length>1?`<button class="ghost" data-act="rmset">− Treure l'última</button>`:""}</div>
-   <p class="sub" style="font-size:13px">Els números en blau són l'objectiu. Ajusta'ls amb − i + si cal, i toca ✓ en acabar cada sèrie.</p>
+   <p class="sub" style="font-size:13px">${it.sets.some(s=>s.t&&s.kg!==""&&s.kg!=null)?"Els números en blau són l'objectiu. Ajusta'ls amb − i + si cal, i t":"T"}oca ✓ en acabar cada sèrie. <b>RIR</b> = repeticions que et queden a la recambra${rirTarget()?` (objectiu: ${esc(rirTarget())})`:""}.</p>
   </div>`;
   el.innerHTML=h;
   const all=exState(it)==="done", lastEx=i===n-1;
@@ -669,6 +694,7 @@ let yearCursor=new Date().getFullYear();
 const MESOS=["Gen","Feb","Mar","Abr","Mai","Jun","Jul","Ago","Set","Oct","Nov","Des"];
 function renderAny(){
   const el=$("#v-any"), Y=yearCursor, today=todayISO();
+  const st=typeof startISO==="function"?startISO():today, y0=+st.slice(0,4), m0=Y===y0?Math.max(0,+st.slice(5,7)-1):0;
   const ys=S.sessions.filter(s=>(s.date||"").startsWith(Y+"-"));
   const byDay={}; ys.forEach(s=>{(byDay[s.date]=byDay[s.date]||[]).push(s)});
   const wk={}; ys.forEach(s=>{const w=weekStart(s.date);wk[w]=(wk[w]||0)+1});
@@ -676,14 +702,14 @@ function renderAny(){
   let streak=0; {let w=weekStart(today); if((wk[w]||0)<4) w=addDays(w,-7); while((S.sessions.filter(s=>weekStart(s.date)===w).length)>=4){streak++;w=addDays(w,-7)}}
   const secs=ys.reduce((a,s)=>a+(s.durationSec||0),0), tv=ys.reduce((a,s)=>a+(s.items||[]).reduce((b,i)=>b+vol(i.sets),0),0);
   let h=`<div class="stack">${liveBanner()}<div class="vhead"><span class="lbl">Constància</span><h1>Vista <em>anual</em></h1></div>
-   <div class="yearnav"><button id="y-prev" aria-label="Any anterior">‹</button><strong>${Y}</strong><button id="y-next" aria-label="Any següent" ${Y>=new Date().getFullYear()?"disabled":""}>›</button></div>
+   <div class="yearnav"><button id="y-prev" aria-label="Any anterior" ${Y<=y0?"disabled":""}>‹</button><strong>${Y}</strong><button id="y-next" aria-label="Any següent" ${Y>=new Date().getFullYear()?"disabled":""}>›</button></div>
    <div class="tiles"><div class="tile"><div class="lbl">Sessions</div><div class="v">${ys.length}</div></div>
-    <div class="tile"><div class="lbl">Setm. 4/4</div><div class="v">${full}<small> / ${Object.keys(wk).length}</small></div></div>
+    <div class="tile"><div class="lbl">Setm. complertes</div><div class="v">${full}<small> / ${Object.keys(wk).length}</small></div></div>
     <div class="tile"><div class="lbl">Ratxa</div><div class="v ${streak?"up":""}">${streak}<small> setm.</small></div></div>
     <div class="tile"><div class="lbl">Volum</div><div class="v">${fn(tv/1000,0)}<small> t</small></div></div>
     <div class="tile"><div class="lbl">Hores</div><div class="v">${secs?fn(secs/3600,1):"–"}<small>${secs?" h":""}</small></div></div>
     <div class="tile"><div class="lbl">Mitjana</div><div class="v">${Object.keys(wk).length?fn(ys.length/Object.keys(wk).length,1):"–"}<small> /setm.</small></div></div></div>
-   <div class="card"><div class="months">${MESOS.map((mn,m)=>{
+   <div class="card"><div class="months">${MESOS.map((mn,m)=>{ if(m<m0) return "";
       const first=new Date(Y,m,1), days=new Date(Y,m+1,0).getDate(), off=(first.getDay()+6)%7; const mm=pad(m+1);
       const cnt=ys.filter(s=>s.date.slice(5,7)===mm).length;
       let cells=""; for(let k=0;k<off;k++) cells+=`<span class="x"></span>`;
@@ -739,7 +765,7 @@ function kcalStats(){
 }
 function renderNutricio(){
   const el=$("#v-nutricio"); const act=activePauta(), nxt=nextPauta(); const P=(nutShow==="next"&&nxt)?nxt:act;
-  let h=`<div class="stack">${liveBanner()}<div class="vhead"><span class="lbl">${P?(P===act?"Pauta activa":"Propera pauta")+" · des del "+esc(fdate(P.from,{day:"numeric",month:"long",year:"numeric"})):"Alimentació"}</span><h1><em>Nutrició</em></h1></div>`;
+  let h=`<div class="stack">${liveBanner()}<div class="vhead"><span class="lbl">${P?(P.from>todayISO()?(P===act&&!pautes().some(x=>x.from<=todayISO())?"La teva pauta · comença el ":"Propera pauta · des del "):"Pauta activa · des del ")+esc(fdate(P.from,{day:"numeric",month:"long",year:"numeric"})):"Alimentació"}</span><h1><em>Nutrició</em></h1></div>`;
   if(!P){el.innerHTML=h+`<div class="empty"><b>Encara no hi ha cap pauta</b>Quan el teu entrenador hi carregui la pauta, aquí veuràs els àpats, les equivalències i el registre de kcal.</div></div>`;return}
   const tg=P.targets||{}, today=todayISO(), lg=S.kcallog.find(x=>x.date===today), st=kcalStats();
   h+=`<div class="ph"><span class="pill">${esc(P.phase||"")}</span>${P.provisional?'<span class="pill w">Provisional</span>':""}<span class="lbl">${esc(P.source||"")}</span></div>`;
@@ -798,7 +824,7 @@ function renderInformes(){
   const el=$("#v-informes"); const list=[...S.reports].sort((a,b)=>(b.week||"").localeCompare(a.week||""));
   el.innerHTML=`<div class="stack">${liveBanner()}<div class="vhead"><span class="lbl">Setmanals</span><h1><em>Informes</em></h1></div>${autoReportCard()}${
     list.length?list.map(r=>`<article class="card report"><span class="lbl">${r.from==="ia"?`<span class="pill">🤖 ${esc(((window.QStore||{}).AI||{name:"Q"}).name)} · IA · revisat pel teu entrenador</span> `:""}Setmana del ${esc(r.week?fdate(r.week,{day:"numeric",month:"long"}):"–")}</span><h3 style="margin:4px 0 6px">${esc(r.title||"Informe setmanal")}</h3>${md(r.text||"")}</article>`).join("")
-    :`<p class="sub" style="font-size:13px">A sota hi apareixeran els informes comentats per l'entrenador.</p>`}</div>`;
+    :""}${typeof welcomeReport==="function"?welcomeReport():""}</div>`;
 }
 
 /* ---------- RELLOTGE I ARRENCADA ---------- */
