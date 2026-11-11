@@ -1,5 +1,5 @@
 /* 2UP · funciona sense connexió: guarda l'app i les llibreries al mòbil */
-const V="quadern-v22";
+const V="quadern-v23";
 const CORE=["./","index.html","store.js","coach.js","engage.js","app.js","manifest.webmanifest","icon-192.png","icon-512.png","apple-touch-icon.png",
  "vendor/supabase-2.45.4.js","vendor/chart-4.4.1.umd.js"];
 self.addEventListener("install",e=>{e.waitUntil(caches.open(V).then(c=>Promise.all(CORE.map(u=>c.add(u).catch(()=>{})))).then(()=>self.skipWaiting()))});
@@ -11,7 +11,7 @@ self.addEventListener("fetch",e=>{
   const own=u.origin===location.origin;
   if(own&&(r.mode==="navigate"||/\.(html|js|webmanifest)$/.test(u.pathname))){
     // app: primer la xarxa (per rebre actualitzacions), si no hi ha connexió la còpia guardada
-    e.respondWith(fetch(r).then(res=>{const c=res.clone();caches.open(V).then(x=>x.put(r,c));return res}).catch(()=>caches.match(r).then(m=>m||caches.match("index.html"))));
+    e.respondWith(fetch(r,{cache:"no-cache"}).then(res=>{const c=res.clone();caches.open(V).then(x=>x.put(r,c));return res}).catch(()=>caches.match(r).then(m=>m||caches.match("index.html"))));
     return;
   }
   // llibreries, fonts i imatges: la còpia guardada primer
