@@ -653,8 +653,9 @@ function planBanner(){
 function planReviewCard(){
   if(!CV()) return ""; const p=planDoc(); if(!p||p.status!=="provisional") return "";
   return `<article class="card stack" style="border:2px solid var(--accent)"><span class="lbl">Rutina provisional · automàtica${dueTxt(p.reviewDue)}</span>
-    <div><b>${esc(p.split||"")}</b> · ${esc(p.days||"")} dies · ${esc(p.exercisesPerSession||"")} exercicis per sessió</div>
+    <div><b>${esc(p.split||"")}</b> · ${esc(p.days||"")} dies · ${p.setsPerSession?"fins a "+esc(p.setsPerSession)+" sèries per sessió":esc(p.exercisesPerSession||"")+" exercicis per sessió"}</div>
     <div class="sub" style="font-size:13px">${esc(p.rir||"")}</div>
+    ${p.volume?`<details open><summary class="lbl" style="cursor:pointer">Musculatura i volum setmanal</summary><div class="tw"><table><thead><tr><th>Múscul</th><th class="r">Sèries/setm.</th><th class="r">Freqüència</th></tr></thead><tbody>${Object.entries(p.volume).sort((a,b)=>b[1].sets-a[1].sets).map(([m,v])=>`<tr><td>${esc(m)}</td><td class="r num">${esc(v.sets)}</td><td class="r num">${esc(v.freq)}×/setm.${v.freq<2&&["Pit","Esquena","Espatlles","Bíceps","Tríceps","Quàdriceps","Isquios","Glutis"].includes(m)?" ⚠️":""}</td></tr>`).join("")}</tbody></table></div><p class="sub" style="font-size:12px">Objectiu: cada múscul 2 cops per setmana. Les sèries pugen setmana a setmana segons el progrés.</p></details>`:""}
     ${(p.flags||[]).length?`<ul class="tips">${p.flags.map(f=>`<li>⚠️ ${esc(f)}</li>`).join("")}</ul>`:""}
     ${(()=>{const n=(S.nutrition||[]).find(x=>x.provisional);return n?`<div><b>Pauta:</b> ${esc(n.title||n.phase||"")} · ${fn((n.targets||{}).kcal,0)} kcal · P ${esc((n.targets||{}).p)} · HC ${esc((n.targets||{}).c)} · G ${esc((n.targets||{}).g)}</div>`:""})()}
     <p class="sub" style="font-size:13px">El client ja ho veu i pot començar. Revisa la <a href="#rutines">rutina</a> i la <a href="#pauta">pauta</a> (canvia el que calgui) i després valida-les: rebrà l'avís que les ha revisat l'entrenador titulat.</p>
