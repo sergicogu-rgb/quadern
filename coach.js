@@ -646,8 +646,8 @@ const planDoc=()=>(S.programs||[]).find(x=>x.id==="inicial")||null;
 function dueTxt(iso){ if(!iso) return ""; const h=Math.round((new Date(iso)-new Date())/36e5); return h>0?` · queden ${h} h`:" · fora de termini" }
 function planBanner(){
   if(CV()||!IS_CLIENT()) return ""; const p=planDoc(); if(!p) return "";
-  if(p.status==="provisional") return `<div class="note" style="line-height:1.45"><b>🕒 Rutina i pauta provisionals</b><br>Les hem preparat amb la teva fitxa perquè puguis començar ja. El teu entrenador titulat les revisarà i personalitzarà en menys de 24 h.${p.rir?`<br><span class="sub" style="font-size:13px">${esc(p.rir)}.</span>`:""}</div>`;
-  if(p.status==="revisat"&&p.reviewedAt&&(Date.now()-new Date(p.reviewedAt))<3*864e5) return `<div class="note" style="line-height:1.45"><b>✅ Rutina i pauta revisades</b> pel teu entrenador titulat.</div>`;
+  if(p.status==="provisional") return `<div class="note" style="line-height:1.45"><b>🕒 Rutina i pauta provisionals</b><br>Les hem preparat amb la teva fitxa perquè puguis començar ja. El teu entrenador, graduat en Ciències de l'Activitat Física i l'Esport, les revisarà i personalitzarà en menys de 24 h.${p.rir?`<br><span class="sub" style="font-size:13px">${esc(p.rir)}.</span>`:""}</div>`;
+  if(p.status==="revisat"&&p.reviewedAt&&(Date.now()-new Date(p.reviewedAt))<3*864e5) return `<div class="note" style="line-height:1.45"><b>✅ Rutina i pauta revisades</b> pel teu entrenador, graduat en Ciències de l'Activitat Física i l'Esport.</div>`;
   return "";
 }
 function planReviewCard(){
@@ -658,7 +658,7 @@ function planReviewCard(){
     ${p.volume?`<details open><summary class="lbl" style="cursor:pointer">Musculatura i volum setmanal</summary><div class="tw"><table><thead><tr><th>Múscul</th><th class="r">Sèries/setm.</th><th class="r">Freqüència</th></tr></thead><tbody>${Object.entries(p.volume).sort((a,b)=>b[1].sets-a[1].sets).map(([m,v])=>`<tr><td>${esc(m)}</td><td class="r num">${esc(v.sets)}</td><td class="r num">${esc(v.freq)}×/setm.${v.freq<2&&["Pit","Esquena","Espatlles","Bíceps","Tríceps","Quàdriceps","Isquios","Glutis"].includes(m)?" ⚠️":""}</td></tr>`).join("")}</tbody></table></div><p class="sub" style="font-size:12px">Objectiu: cada múscul 2 cops per setmana. Les sèries pugen setmana a setmana segons el progrés.</p></details>`:""}
     ${(p.flags||[]).length?`<ul class="tips">${p.flags.map(f=>`<li>⚠️ ${esc(f)}</li>`).join("")}</ul>`:""}
     ${(()=>{const n=(S.nutrition||[]).find(x=>x.provisional);return n?`<div><b>Pauta:</b> ${esc(n.title||n.phase||"")} · ${fn((n.targets||{}).kcal,0)} kcal · P ${esc((n.targets||{}).p)} · HC ${esc((n.targets||{}).c)} · G ${esc((n.targets||{}).g)}</div>`:""})()}
-    <p class="sub" style="font-size:13px">El client ja ho veu i pot començar. Revisa la <a href="#rutines">rutina</a> i la <a href="#pauta">pauta</a> (canvia el que calgui) i després valida-les: rebrà l'avís que les ha revisat l'entrenador titulat.</p>
+    <p class="sub" style="font-size:13px">El client ja ho veu i pot començar. Revisa la <a href="#rutines">rutina</a> i la <a href="#pauta">pauta</a> (canvia el que calgui) i després valida-les: rebrà l'avís que les ha revisat el seu entrenador, graduat en Ciències de l'Activitat Física i l'Esport.</p>
     <button class="good" id="plan-ok" style="height:50px">✅ Validar rutina i pauta</button></article>`;
 }
 document.addEventListener("click",async e=>{
