@@ -60,7 +60,7 @@ function renderClients(){
   const el=$("#v-clients");
   if(!IS_COACH()){el.innerHTML=`<div class="empty"><b>Només per a l'entrenador</b></div>`;return}
   if(ovw==null&&!ovwErr) loadOverview();
-  let h=`<div class="stack"><div class="vhead"><span class="lbl">Panell d'entrenador</span><h1>Clients</h1></div>`;
+  let h=`<div class="stack"><div class="vhead"><span class="lbl">Panell d'entrenador</span><h1>Clients</h1></div>`+(typeof evoConfigCard==="function"?evoConfigCard():"");
   h+=`<form class="card stack" id="inv-form"><span class="lbl">Convidar un client</span>
     <div class="row"><label class="f"><span class="lbl">Nom</span><input id="inv-name" autocomplete="off" required></label>
     <label class="f"><span class="lbl">Correu</span><input id="inv-email" type="email" autocomplete="off" required></label></div>
@@ -212,6 +212,7 @@ function renderResum(){
   const el=$("#v-resum"); const v=QStore.viewing||{}; const tp=tplsSorted(), nx=nextTemplate(tp), P=activePauta(), last=sessionsSorted()[0];
   const bw=bwData(), lb=bw[bw.length-1], st=kcalStats();
   el.innerHTML=`<div class="stack"><div class="vhead"><span class="lbl">${esc(v.email||"")}</span><h1>${esc(v.name||"Client")}</h1></div>
+    ${typeof evoCard==="function"?evoCard():""}
     ${planReviewCard()}
     ${proposalsCard()}
     ${intakeCard()}

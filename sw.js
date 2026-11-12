@@ -1,6 +1,6 @@
 /* 2UP · funciona sense connexió: guarda l'app i les llibreries al mòbil */
-const V="quadern-v23";
-const CORE=["./","index.html","store.js","coach.js","engage.js","app.js","manifest.webmanifest","icon-192.png","icon-512.png","apple-touch-icon.png",
+const V="quadern-v24";
+const CORE=["./","index.html","store.js","coach.js","engage.js","evolution.js","app.js","manifest.webmanifest","icon-192.png","icon-512.png","apple-touch-icon.png",
  "vendor/supabase-2.45.4.js","vendor/chart-4.4.1.umd.js"];
 self.addEventListener("install",e=>{e.waitUntil(caches.open(V).then(c=>Promise.all(CORE.map(u=>c.add(u).catch(()=>{})))).then(()=>self.skipWaiting()))});
 self.addEventListener("activate",e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==V).map(k=>caches.delete(k)))).then(()=>self.clients.claim()))});

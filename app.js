@@ -210,7 +210,7 @@ function renderAvui(){
   const el=$("#v-avui"); autoLoad();
   const today=todayISO(), tpls=tplsSorted(), tp=tpls.find(t=>t.id===draft.templateId);
   const doneToday=S.sessions.filter(s=>s.date===today);
-  let h=`<div class="hello"><span class="lbl">${esc(dayLabel())}${doneToday.length?" · propera sessió":""}</span><h1>${typeof greetHTML==="function"?greetHTML():(doneToday.length?"Propera sessió":"Avui toca")}</h1></div><div class="stack">${typeof avuiTop==="function"?avuiTop():""}${typeof planBanner==="function"?planBanner():""}`;
+  let h=`<div class="hello"><span class="lbl">${esc(dayLabel())}${doneToday.length?" · propera sessió":""}</span><h1>${typeof greetHTML==="function"?greetHTML():(doneToday.length?"Propera sessió":"Avui toca")}</h1></div><div class="stack">${typeof avuiTop==="function"?avuiTop():""}${typeof evoCard==="function"?evoCard():""}${typeof planBanner==="function"?planBanner():""}`;
   doneToday.forEach(s=>{h+=`<div class="done-banner"><span class="ok">✓</span><div><b>${esc(s.name)}</b><div class="sub">Feta avui${s.durationSec?" · "+fmtDur(s.durationSec):""} · ${fn(vol((s.items||[]).flatMap(i=>i.sets))/1000,1)} t</div></div><button data-share-s="${esc(s.id)}" style="margin-left:auto;flex-shrink:0">📤 Story</button></div>`});
   const rest=!doneToday.length&&tpls.length&&!(draft.manual&&draft.date===today)&&isRestDay(today);
   if(!ready.templates&&!tpls.length) h+=`<div class="empty"><b>Carregant…</b>Un moment, s'estan llegint les teves rutines.</div>`;
