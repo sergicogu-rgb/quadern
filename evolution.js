@@ -42,9 +42,11 @@ function evoSvg(variant,lv){
     ${lv>=3?`<path d="M${cx} ${top+12} L${cx} ${wy-4}" stroke="#ffffff" stroke-opacity=".18" stroke-width="1.4"/>`:""}
   </svg>`;
 }
+/* La CSP no deixa usar onerror en línia: si la imatge no hi és, es mostra la silueta provisional. */
+document.addEventListener("error",e=>{const t=e.target,p=t&&t.parentNode; if(t&&t.tagName==="IMG"&&p&&p.classList&&p.classList.contains("evo-av")){p.classList.add("no-img"); t.remove()}},true);
 function evoAvatar(d,lv,cls){
   lv=lv||d.level||1; const v=d.variant==="f"?"f":"m", m=d.model||"base";
-  return `<div class="evo-av ${cls||""}" data-lv="${lv}">${evoSvg(v,lv)}<img src="avatars/${esc(m)}/${v}/${lv}.webp" alt="" loading="lazy" onload="this.parentNode.classList.add('has-img')" onerror="this.remove()"></div>`;
+  return `<div class="evo-av ${cls||""}" data-lv="${lv}">${evoSvg(v,lv)}<img src="avatars/${esc(m)}/${v}/${lv}.webp" alt="" loading="lazy"></div>`;
 }
 
 /* ---------- targeta d'Avui (i del Resum, per a l'entrenador) ---------- */
@@ -175,7 +177,7 @@ document.head.insertAdjacentHTML("beforeend",`<style>
 .evo{display:flex;gap:14px;align-items:center;text-align:left;width:100%;color:var(--fg);font:inherit;cursor:pointer;
   background:linear-gradient(150deg,color-mix(in srgb,var(--accent) 16%,var(--surface)),var(--surface));border:1px solid color-mix(in srgb,var(--accent) 35%,var(--line))}
 .evo-av{position:relative;flex-shrink:0;width:84px;height:132px;border-radius:16px;background:radial-gradient(80% 60% at 50% 40%,color-mix(in srgb,var(--accent-2) 22%,transparent),transparent 70%)}
-.evo-av svg,.evo-av img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}.evo-av.has-img>svg{display:none}
+.evo-av svg,.evo-av img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}.evo-av>svg{display:none}.evo-av.no-img>svg{display:block}
 .evo-av.big{width:180px;height:270px;margin:0 auto}
 .evo-txt{display:flex;flex-direction:column;gap:5px;min-width:0;flex:1}
 .evo-lv{font-family:var(--display);font-weight:800;font-size:19px;letter-spacing:-.01em}
