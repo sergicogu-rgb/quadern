@@ -126,8 +126,8 @@ function drawCard(x,s,X,Y,glass){
     const w=THINGS.find(t=>t[0]===f.t); x.fillText(`Com aixecar ${f.t} (≈${fn(w?w[1]:0,0)} kg).`,cx,sy+222);
     x.fillStyle=CY; x.font=`700 28px ${FD}`; x.fillText(`${timesWord(kg/(w?w[1]:1))}.`,cx,sy+262) }
   // peu
-  LS("0px"); x.textAlign="left"; x.font=`700 28px ${FD}`; const w1=x.measureText("NEXFORM  ").width; x.font=`italic 800 28px ${FD}`; const w2=x.measureText("01 / Future Performance").width; const fx=cx-(w1+w2)/2;
-  x.fillStyle=CY; x.font=`700 28px ${FD}`; x.fillText("NEXFORM  ",fx,Y+CARD_H-40); x.fillStyle="#fff"; x.font=`italic 800 28px ${FD}`; x.fillText("01 / Future Performance",fx+w1,Y+CARD_H-40);
+  LS("0px"); x.textAlign="left"; x.font=`700 28px ${FD}`; const fx=cx-x.measureText("NEXFORM").width/2;
+  x.fillStyle=CY; x.font=`700 28px ${FD}`; x.fillText("NEXFORM",fx,Y+CARD_H-40);
   x.textAlign="left";
   return {kg,f};
 }

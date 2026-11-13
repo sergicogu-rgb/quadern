@@ -236,7 +236,7 @@
     if(!document.body){document.addEventListener("DOMContentLoaded",()=>screen(html),{once:true});return null}
     let el=document.getElementById("login");
     if(!el){el=document.createElement("div");el.id="login";document.body.appendChild(el)}
-    el.hidden=false; el.scrollTop=0; el.innerHTML=`<div class="lgin"><div class="lgbrand">${LOGO}<i>01 / Future Performance</i></div>${html}</div>`; return el;
+    el.hidden=false; el.scrollTop=0; el.innerHTML=`<div class="lgin"><div class="lgbrand">${LOGO}</div>${html}</div>`; return el;
   }
   const $i=id=>document.getElementById(id);
   const msgTo=id=>t=>{const m=$i(id);if(m)m.textContent=t};
