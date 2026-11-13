@@ -1,4 +1,4 @@
-/* 2UP · mode entrenador
+/* NEXFORM · mode entrenador
    - Panell de clients (resum de cada client, invitacions, obrir/desvincular)
    - Vista d'un client: Resum (informe automàtic), Rutines (editor), Pauta (editor amb calculadora), Pes, Setmana, Menjar, Informes
    - Informe setmanal automàtic (també el veu el client a Informes)
@@ -45,7 +45,7 @@ function allowView(v){
 
 /* ---------- PANELL DE CLIENTS ---------- */
 let ovw=null, ovwErr=null, ovwInv=[], ovwBusy=false, invLink=null, invName="", invWhy="", unlinkConfirm=null;
-const waText=(n,l)=>`Ei${n?" "+n.split(" ")[0]:""}! T'he convidat a 2UP, l'app amb què porto els entrenaments 💪\n\n1. Obre aquest enllaç i crea't una contrasenya:\n${l}\n\n2. Accepta el consentiment i omple la fitxa inicial.\n3. Afegeix l'app a la pantalla d'inici (Safari → Compartir → Afegir a pantalla d'inici) i activa les notificacions a ⚙︎.\n\nAquella nit et preparem la rutina i la pauta!`;
+const waText=(n,l)=>`Ei${n?" "+n.split(" ")[0]:""}! T'he convidat a NEXFORM, l'app amb què porto els entrenaments 💪\n\n1. Obre aquest enllaç i crea't una contrasenya:\n${l}\n\n2. Accepta el consentiment i omple la fitxa inicial.\n3. Afegeix l'app a la pantalla d'inici (Safari → Compartir → Afegir a pantalla d'inici) i activa les notificacions a ⚙︎.\n\nAquella nit et preparem la rutina i la pauta!`;
 async function loadOverview(){
   if(ovwBusy) return; ovwBusy=true;
   try{
@@ -74,7 +74,7 @@ function renderClients(){
   else if(ovw==null) h+=`<div class="empty"><b>Carregant…</b></div>`;
   else if(!ovw.length) h+=`<div class="empty"><b>Encara no tens clients</b>Convida el primer amb el formulari de dalt.</div>`;
   else ovw.forEach(c=>{
-    const cons=(c.consent_at?`<span class="pill">RGPD ✓</span>`:`<span class="pill w">Consentiment pendent</span>`)+(c.consent_at&&!c.intake_done?`<span class="pill w">Fitxa pendent</span>`:"")+(c.intake_alert?`<span class="pill w">Salut: revisar</span>`:"")+(c.proposals_pending?`<span class="pill" style="background:var(--accent);color:#fff">🤖 ${c.proposals_pending} per revisar</span>`:"")+(c.consent_at&&!c.ai?`<span class="pill w">Falta acceptar IA</span>`:"")+(c.plan_pending?`<span class="pill" style="background:var(--warn,#c77700);color:#fff">🕒 Rutina per revisar${dueTxt(c.plan_due)}</span>`:"");
+    const cons=(c.consent_at?`<span class="pill">RGPD ✓</span>`:`<span class="pill w">Consentiment pendent</span>`)+(c.consent_at&&!c.intake_done?`<span class="pill w">Fitxa pendent</span>`:"")+(c.intake_alert?`<span class="pill w">Salut: revisar</span>`:"")+(c.proposals_pending?`<span class="pill" style="background:var(--accent);color:var(--accent-ink)">🤖 ${c.proposals_pending} per revisar</span>`:"")+(c.consent_at&&!c.ai?`<span class="pill w">Falta acceptar IA</span>`:"")+(c.plan_pending?`<span class="pill" style="background:var(--warn,#c77700);color:#fff">🕒 Rutina per revisar${dueTxt(c.plan_due)}</span>`:"");
     h+=`<article class="card stack"><div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start">
       <div style="min-width:0"><h3 style="margin:0">${esc(c.name||c.email)}</h3><div class="sub" style="font-size:13px;overflow:hidden;text-overflow:ellipsis">${esc(c.email||"")}</div></div>
       <div class="ph" style="justify-content:flex-end">${cons}</div></div>
@@ -189,10 +189,10 @@ function autoReportCard(){
 }
 /* Primer informe: com funciona l'app (el veu el client des del primer dia, al final de la llista d'informes) */
 function welcomeReport(){
-  const ai=((window.QStore||{}).AI||{name:"Atlas"}).name, st=startISO();
+  const ai=((window.QStore||{}).AI||{name:"ELION"}).name, st=startISO();
   const sec=(ico,t,body)=>`<div class="wr-sec"><span class="wr-ico" aria-hidden="true">${ico}</span><div><b>${t}</b><p>${body}</p></div></div>`;
   return `<article class="card report stack welcome-rep"><span class="lbl">Setmana del ${esc(fdate(weekStart(st),{day:"numeric",month:"long"}))} · Benvinguda</span>
-    <h3 style="margin:0">Com funciona 2UP</h3>
+    <h3 style="margin:0">Com funciona NEXFORM</h3>
     <p class="sub" style="margin:0">El teu entrenador et prepara el pla i tu només has d'apuntar el que fas. Amb aquestes dades, cada setmana ajustem càrregues i alimentació.</p>
     ${sec("🏋️","Avui","Si toca entrenar, hi veuràs la rutina amb les càrregues proposades. Prem <b>Començar</b>, apunta kg i repeticions i toca ✓ en acabar cada sèrie. Els dies de descans t'ho indica i et recorda els hàbits del dia.")}
     ${sec("📈","Com progressem","Cada exercici té un rang de repeticions (per exemple 8–12). Quan arribes al màxim del rang a totes les sèries deixant-ne 2-3 a la recambra (RIR), l'app et proposa pujar el pes la vegada següent.")}

@@ -1,4 +1,4 @@
-/* 2UP · capa de dades local-primer amb sincronització a Supabase.
+/* NEXFORM · capa de dades local-primer amb sincronització a Supabase.
    API de col·leccions (collection/doc/set/update/delete/get/onSnapshot). Tot s'escriu primer al mòbil i es puja quan hi ha connexió.
    Multiusuari: l'entrenador pot "obrir" un client (Q.viewAs) i llavors llegeix i escriu les dades d'aquell client. */
 (function(){
@@ -14,8 +14,9 @@
   const CLIENT_COLS=["sessions","bodyweight","kcallog","drafts","intake"];
   const COACH_COLS=["exercises","templates","targets","programs","nutrition","reports"];
   const CONSENT_VERSION="v3-2026-11";
-  const AI={name:"Atlas",full:"Atlas, l'entrenador IA de 2UP",provider:"Claude, d'Anthropic PBC"};
-  const APP_NAME="2UP";
+  const AI={name:"ELION",full:"ELION, l'AI Performance Coach de NEXFORM",provider:"Claude, d'Anthropic PBC"};
+  const APP_NAME="NEXFORM";
+  const LOGO='<svg class="nxlogo" viewBox="0 0 470 100" role="img" aria-label="NEXFORM"><g style="fill:var(--logo-n)"><rect x="18" y="20" width="16" height="60"/><polygon points="18,20 34,20 82,80 66,80"/><rect x="66" y="44" width="16" height="36"/></g><rect x="66" y="14" width="16" height="16" style="fill:var(--logo-s)"/><g transform="translate(118 26)" fill="none" stroke="currentColor" stroke-width="9" stroke-linejoin="miter"><path d="M4.5 0V48M35.5 0V48M4.5 3L35.5 45"/><path transform="translate(52)" d="M40 4.5H0M4.5 0V48M40 43.5H0M4.5 24H34"/><path transform="translate(104)" d="M4.8 2.6L35.2 45.4M35.2 2.6L4.8 45.4"/><path transform="translate(156)" d="M40 4.5H0M4.5 0V48M4.5 24H34"/><rect transform="translate(208)" x="4.5" y="4.5" width="31" height="39" rx="15.5"/><path transform="translate(260)" d="M4.5 48V4.5H23A10.75 10.75 0 0 1 23 26H4.5M20 26L35 44.5"/><path transform="translate(312)" d="M4.5 48V0M35.5 48V0M4.5 4L20 30L35.5 4"/></g></svg>'; window.NX_LOGO=LOGO;
   const CONTROLLER={name:"Sergi Coma",role:"entrenador personal",contact:"sergicogu@gmail.com"};
 
   const Q={sb,uid:null,email:null,target:null,viewing:null,profile:null,consent:null,
@@ -235,7 +236,7 @@
     if(!document.body){document.addEventListener("DOMContentLoaded",()=>screen(html),{once:true});return null}
     let el=document.getElementById("login");
     if(!el){el=document.createElement("div");el.id="login";document.body.appendChild(el)}
-    el.hidden=false; el.scrollTop=0; el.innerHTML=`<div class="lgin"><div class="lgbrand">2UP <i>Reps up. Weight up.</i></div>${html}</div>`; return el;
+    el.hidden=false; el.scrollTop=0; el.innerHTML=`<div class="lgin"><div class="lgbrand">${LOGO}<i>01 / Future Performance</i></div>${html}</div>`; return el;
   }
   const $i=id=>document.getElementById(id);
   const msgTo=id=>t=>{const m=$i(id);if(m)m.textContent=t};

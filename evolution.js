@@ -1,9 +1,9 @@
-/* 2UP · Atlas Evolution: avatar evolutiu del client (5 nivells, home o dona).
+/* NEXFORM · ELION Evolution: avatar evolutiu del client (5 nivells, home o dona).
    Les dades surten de l'RPC avatar_refresh (Supabase): el càlcul és al servidor i el nivell mai no baixa.
    Imatges: avatars/<model>/<variant>/<nivell>.webp; si no hi són, es dibuixa una silueta provisional en SVG.
    Depèn dels helpers globals de index.html i app.js (esc, fn, $, render, cur, toast, IS_COACH, IS_CLIENT). */
 
-const EVO_NAMES=["","START","ACTIVE","PROGRESS","ATHLETE","ATLAS ELITE"];
+const EVO_NAMES=["","START","ACTIVE","PROGRESS","ATHLETE","ELION ELITE"];
 const EVO_PARTS=[["train","Entrenament","🏋️"],["food","Alimentació","🍽️"],["body","Progrés físic","📈"],["consist","Constància","🔁"]];
 let EVO=null, EVO_for=null, EVO_busy=false, EVO_t=0, EVO_open=false, EVO_cel=null, EVO_cfg=null;
 
@@ -32,7 +32,7 @@ function evoSvg(variant,lv){
   const legL=`M${cx-hip+leg/1.3} ${hy-4} L${cx-10} 184`, legR=`M${cx+hip-leg/1.3} ${hy-4} L${cx+10} 184`;
   const id="eg"+variant+lv;
   return `<svg viewBox="0 0 120 190" class="evo-svg" role="img" aria-label="Avatar provisional, nivell ${lv}">
-    <defs><linearGradient id="${id}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8fb4ff"/><stop offset=".55" stop-color="#3f6fe6"/><stop offset="1" stop-color="#1b2f8a"/></linearGradient></defs>
+    <defs><linearGradient id="${id}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#9ff7ee"/><stop offset=".55" stop-color="#22E3D2"/><stop offset="1" stop-color="#0a6f68"/></linearGradient></defs>
     <g fill="none" stroke="url(#${id})" stroke-linecap="round">
       <path d="${armL}" stroke-width="${arm*1.5}"/><path d="${armR}" stroke-width="${arm*1.5}"/>
       <path d="${legL}" stroke-width="${leg*1.6}"/><path d="${legR}" stroke-width="${leg*1.6}"/></g>
@@ -65,12 +65,12 @@ function evoCard(){
   if(!window.QStore||!evoWho()) return "";
   evoLoad();
   const d=EVO;
-  if(!d) return `<div class="card evo"><div class="evo-av">${evoSvg("m",1)}</div><div class="evo-txt"><span class="lbl">Atlas Evolution</span><b>Calculant la teva evolució…</b></div></div>`;
+  if(!d) return `<div class="card evo"><div class="evo-av">${evoSvg("m",1)}</div><div class="evo-txt"><span class="lbl">ELION Evolution</span><b>Calculant la teva evolució…</b></div></div>`;
   const c=d.current||{}, b=evoBar(d);
   const kcal=c.kcal_target!=null?`${c.kcal_ok||0}/7 dies dins de les kcal`:`${c.kcal_days||0}/7 dies apuntats`;
   return `<button class="card evo" id="evo-open" type="button">
     ${evoAvatar(d)}
-    <span class="evo-txt"><span class="lbl">Atlas Evolution</span>
+    <span class="evo-txt"><span class="lbl">ELION Evolution</span>
       <span class="evo-lv">Nivell ${d.level} · ${EVO_NAMES[d.level]}</span>
       <span class="evo-bar"><i style="width:${b.pct.toFixed(1)}%"></i></span>
       <span class="evo-sub">${esc(b.txt)}</span>
@@ -95,11 +95,11 @@ function evoDetail(){
   return `<div id="evo-ov" class="evo-ov"><div class="evo-bg" data-evo-close></div><div class="evo-box">
     <button class="plain evo-x" data-evo-close aria-label="Tancar">✕</button>
     ${evoAvatar(d,d.level,"big")}
-    <div style="text-align:center"><span class="lbl">Atlas Evolution</span><h2>Nivell ${d.level} · ${EVO_NAMES[d.level]}</h2></div>
+    <div style="text-align:center"><span class="lbl">ELION Evolution</span><h2>Nivell ${d.level} · ${EVO_NAMES[d.level]}</h2></div>
     <span class="evo-bar"><i style="width:${b.pct.toFixed(1)}%"></i></span><span class="evo-sub" style="text-align:center">${esc(b.txt)}</span>
     <div class="card stack" style="gap:10px"><span class="lbl">Aquesta setmana · ${c.score!=null?c.score:"–"}/100</span>${parts}
       ${why.length?`<ul class="evo-why">${why.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>`:""}</div>
-    <div class="card stack" style="gap:6px"><span class="lbl">Objectiu següent</span><b>${nx?`Nivell ${nx.level} · ${EVO_NAMES[nx.level]}`:"ATLAS ELITE"}</b><span class="sub">${esc(goal)}</span></div>
+    <div class="card stack" style="gap:6px"><span class="lbl">Objectiu següent</span><b>${nx?`Nivell ${nx.level} · ${EVO_NAMES[nx.level]}`:"ELION ELITE"}</b><span class="sub">${esc(goal)}</span></div>
     <div class="card stack" style="gap:6px"><span class="lbl">Últimes setmanes</span>${evoSpark(d.history,c.score)||'<span class="sub">Encara no hi ha cap setmana tancada.</span>'}</div>
     ${vsel}
     <p class="sub" style="font-size:12px">Cada setmana tancada suma punts segons el compliment del pla. El nivell no baixa mai: una setmana complicada només fa avançar menys. ${d.model==="base"?"Les imatges definitives de l'avatar estan en preparació.":""}</p>
@@ -113,8 +113,8 @@ function evoMaybeCelebrate(){
   const d=EVO; if(!d||!evoMine()||EVO_cel||$("#evo-cel")) return;
   const lastW=(d.history||[])[ (d.history||[]).length-1 ];
   let msg=null, from=d.level;
-  if(d.level>(d.seen_level||1)){ from=d.seen_level||1; msg=`Has arribat al nivell ${d.level} · ${EVO_NAMES[d.level]}. El teu progrés Atlas continua avançant.` }
-  else if(lastW&&lastW.score>=90&&(!d.seen_week||d.seen_week<lastW.week)) msg=`La teva setmana ha puntuat ${lastW.score}/100: has complert el teu pla. El teu progrés Atlas continua avançant.`;
+  if(d.level>(d.seen_level||1)){ from=d.seen_level||1; msg=`Has arribat al nivell ${d.level} · ${EVO_NAMES[d.level]}. El teu progrés ELION continua avançant.` }
+  else if(lastW&&lastW.score>=90&&(!d.seen_week||d.seen_week<lastW.week)) msg=`La teva setmana ha puntuat ${lastW.score}/100: has complert el teu pla. El teu progrés ELION continua avançant.`;
   if(!msg) return;
   EVO_cel={level:d.level,week:lastW?lastW.week:d.week};
   document.body.insertAdjacentHTML("beforeend",`<div id="evo-cel" class="evo-ov cel"><div class="evo-bg"></div><div class="evo-box" style="align-items:center;text-align:center">
@@ -136,14 +136,14 @@ function evoConfigCard(){
       .then(({data})=>{EVO_cfg=data||{}; if(cur==="clients") render()}).catch(()=>{EVO_cfg={}}); }
   const c=EVO_cfg||{}, w=c.weights||{train:40,food:30,body:20,consist:10}, t=c.thresholds||[0,300,900,2000,3600], p=c.params||{kcal_tol_pct:10,good_week_pct:75};
   const num=(id,v,lbl)=>`<label class="f"><span class="lbl">${lbl}</span><input id="${id}" type="number" inputmode="numeric" min="0" value="${esc(String(v))}"></label>`;
-  return `<details class="card stack"><summary class="lbl" style="cursor:pointer">Atlas Evolution · criteris de l'avatar</summary>
+  return `<details class="card stack"><summary class="lbl" style="cursor:pointer">ELION Evolution · criteris de l'avatar</summary>
     <div class="stack" style="margin-top:10px">
       <span class="sub" style="font-size:13px">Pes de cada variable a la puntuació setmanal (en %). Si un client no té dades d'una variable, el seu pes es reparteix entre les altres.</span>
       <div class="row">${num("ec-train",w.train,"Entrenament")}${num("ec-food",w.food,"Alimentació")}</div>
       <div class="row">${num("ec-body",w.body,"Progrés físic")}${num("ec-consist",w.consist,"Constància")}</div>
       <span class="sub" style="font-size:13px">Punts acumulats per pujar de nivell (cada setmana suma de 0 a 100).</span>
       <div class="row">${num("ec-t2",t[1],"ACTIVE")}${num("ec-t3",t[2],"PROGRESS")}</div>
-      <div class="row">${num("ec-t4",t[3],"ATHLETE")}${num("ec-t5",t[4],"ATLAS ELITE")}</div>
+      <div class="row">${num("ec-t4",t[3],"ATHLETE")}${num("ec-t5",t[4],"ELION ELITE")}</div>
       <div class="row">${num("ec-tol",p.kcal_tol_pct,"Marge de kcal (±%)")}${num("ec-good",p.good_week_pct,"Setmana complerta (% sessions)")}</div>
       <button class="primary" id="ec-save" type="button">Desar criteris</button>
     </div></details>`;

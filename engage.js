@@ -1,4 +1,4 @@
-/* 2UP · enganxar: salutació, missatge de Q en format xat, hàbits i ratxes, resum divertit i targeta per compartir.
+/* NEXFORM · enganxar: salutació, missatge de Q en format xat, hàbits i ratxes, resum divertit i targeta per compartir.
    Depèn dels helpers globals de index.html (S, esc, fn, md, todayISO, addDays, weekStart, tplsSorted, bwData, vol...). */
 
 /* ---------- salutació ---------- */
@@ -85,20 +85,20 @@ const CARD_H=1130;
 function timesWord(r){const k=Math.round(r); if(Math.abs(r-k)<.15&&k>=1&&k<=10) return ["Una vegada","Dues vegades","Tres vegades","Quatre vegades","Cinc vegades","Sis vegades","Set vegades","Vuit vegades","Nou vegades","Deu vegades"][k-1]; return fn(Math.round(r*10)/10,1)+" vegades"}
 function drawCard(x,s,X,Y,glass){
   const W=920, cx=X+W/2, LS=v=>{try{x.letterSpacing=v}catch(e){}};
-  const CY="#3ee0ff", acc=x.createLinearGradient(X,0,X+W,0); acc.addColorStop(0,"#6f9bff"); acc.addColorStop(1,"#34d4ff");
+  const CY="#C8FF2E", acc=x.createLinearGradient(X,0,X+W,0); acc.addColorStop(0,"#C8FF2E"); acc.addColorStop(1,"#22E3D2");
   const all=(s.items||[]).flatMap(i=>i.sets||[]), kg=vol(all), prs=sessionPRs(s), f=funFact(kg);
-  if(glass){ x.fillStyle=glass; roundRect(x,X,Y,W,CARD_H,48); x.fill(); x.strokeStyle="rgba(110,160,255,.35)"; x.lineWidth=3; x.stroke() }
+  if(glass){ x.fillStyle=glass; roundRect(x,X,Y,W,CARD_H,48); x.fill(); x.strokeStyle="rgba(200,255,46,.30)"; x.lineWidth=3; x.stroke() }
   x.textBaseline="alphabetic";
   // capçalera: Q + data
   const AIN=((window.QStore||{}).AI||{name:"Q"}).name;
-  const ag=x.createLinearGradient(X+44,Y+40,X+104,Y+100); ag.addColorStop(0,"#5b8cff"); ag.addColorStop(1,"#34d4ff");
+  const ag=x.createLinearGradient(X+44,Y+40,X+104,Y+100); ag.addColorStop(0,"#22E3D2"); ag.addColorStop(1,"#0a6f68");
   x.fillStyle=ag; x.beginPath(); x.arc(X+74,Y+72,30,0,Math.PI*2); x.fill();
   LS("0px"); x.fillStyle="#fff"; x.textAlign="center"; x.font=`italic 800 32px ${FD}`; x.fillText(AIN.charAt(0),X+74,Y+84);
-  x.textAlign="left"; x.fillStyle=CY; x.font=`600 28px ${FD}`; x.fillText(`Analitzat per ${AIN}`,X+120,Y+82);
+  x.textAlign="left"; x.fillStyle="#22E3D2"; x.font=`600 28px ${FD}`; x.fillText(`Analitzat per ${AIN}`,X+120,Y+82);
   const ds=dt(s.date).toLocaleDateString("ca-ES",{day:"numeric",month:"short"}); x.textAlign="right"; x.fillStyle="rgba(255,255,255,.55)"; x.font=`600 26px ${FD}`; x.fillText(ds,X+W-44,Y+82);
   // trofeu
-  x.textAlign="center"; const tg=x.createLinearGradient(cx-75,Y+140,cx+75,Y+290); tg.addColorStop(0,"#34d4ff"); tg.addColorStop(1,"#5b8cff");
-  x.save(); x.shadowColor="rgba(52,212,255,.55)"; x.shadowBlur=40; x.fillStyle=tg; roundRect(x,cx-75,Y+140,150,150,38); x.fill(); x.restore();
+  x.textAlign="center"; const tg=x.createLinearGradient(cx-75,Y+140,cx+75,Y+290); tg.addColorStop(0,"#C8FF2E"); tg.addColorStop(1,"#22E3D2");
+  x.save(); x.shadowColor="rgba(200,255,46,.45)"; x.shadowBlur=40; x.fillStyle=tg; roundRect(x,cx-75,Y+140,150,150,38); x.fill(); x.restore();
   x.fillStyle="#fff"; x.font=`92px "Apple Color Emoji","Noto Color Emoji","Segoe UI Emoji",sans-serif`; x.fillText("🏆",cx,Y+248);
   // títol
   LS("-3px"); x.fillStyle="#fff"; x.font=`800 74px ${FD}`; x.fillText("Sessió completada!",cx,Y+392);
@@ -119,20 +119,20 @@ function drawCard(x,s,X,Y,glass){
   sy+=180;
   // comparació
   if(f){ const bh=290;
-    x.fillStyle="rgba(52,212,255,.07)"; roundRect(x,X+44,sy,W-88,bh,28); x.fill(); x.strokeStyle="rgba(52,212,255,.35)"; x.lineWidth=2; x.stroke();
+    x.fillStyle="rgba(34,227,210,.07)"; roundRect(x,X+44,sy,W-88,bh,28); x.fill(); x.strokeStyle="rgba(34,227,210,.35)"; x.lineWidth=2; x.stroke();
     LS("0px"); x.fillStyle="#fff"; x.font=`84px "Apple Color Emoji","Noto Color Emoji","Segoe UI Emoji",sans-serif`; x.fillText(f.e,cx,sy+104);
     LS("-2px"); x.font=`800 50px ${FD}`; x.fillText(`${fn(Math.round(kg),0)} kg!`,cx,sy+174);
     LS("0px"); x.fillStyle="rgba(255,255,255,.75)"; x.font=`500 28px ${FD}`;
     const w=THINGS.find(t=>t[0]===f.t); x.fillText(`Com aixecar ${f.t} (≈${fn(w?w[1]:0,0)} kg).`,cx,sy+222);
     x.fillStyle=CY; x.font=`700 28px ${FD}`; x.fillText(`${timesWord(kg/(w?w[1]:1))}.`,cx,sy+262) }
   // peu
-  LS("0px"); x.textAlign="left"; x.font=`700 28px ${FD}`; const w1=x.measureText("2UP  ").width; x.font=`italic 800 28px ${FD}`; const w2=x.measureText("Reps up. Weight up.").width; const fx=cx-(w1+w2)/2;
-  x.fillStyle=CY; x.font=`700 28px ${FD}`; x.fillText("2UP  ",fx,Y+CARD_H-40); x.fillStyle="#fff"; x.font=`italic 800 28px ${FD}`; x.fillText("Reps up. Weight up.",fx+w1,Y+CARD_H-40);
+  LS("0px"); x.textAlign="left"; x.font=`700 28px ${FD}`; const w1=x.measureText("NEXFORM  ").width; x.font=`italic 800 28px ${FD}`; const w2=x.measureText("01 / Future Performance").width; const fx=cx-(w1+w2)/2;
+  x.fillStyle=CY; x.font=`700 28px ${FD}`; x.fillText("NEXFORM  ",fx,Y+CARD_H-40); x.fillStyle="#fff"; x.font=`italic 800 28px ${FD}`; x.fillText("01 / Future Performance",fx+w1,Y+CARD_H-40);
   x.textAlign="left";
   return {kg,f};
 }
-function bgNavy(x,W,H){let g=x.createLinearGradient(0,0,W,H); g.addColorStop(0,"#0d0f45"); g.addColorStop(1,"#05051c"); x.fillStyle=g; x.fillRect(0,0,W,H);
-  const rg=x.createRadialGradient(W*.9,H*.05,0,W*.9,H*.05,W*.9); rg.addColorStop(0,"rgba(91,140,255,.45)"); rg.addColorStop(1,"rgba(91,140,255,0)"); x.fillStyle=rg; x.fillRect(0,0,W,H)}
+function bgNavy(x,W,H){let g=x.createLinearGradient(0,0,W,H); g.addColorStop(0,"#121821"); g.addColorStop(1,"#07090D"); x.fillStyle=g; x.fillRect(0,0,W,H);
+  const rg=x.createRadialGradient(W*.9,H*.05,0,W*.9,H*.05,W*.9); rg.addColorStop(0,"rgba(200,255,46,.16)"); rg.addColorStop(1,"rgba(200,255,46,0)"); x.fillStyle=rg; x.fillRect(0,0,W,H)}
 async function makeImage(s,mode,photo){
   await loadFonts();
   const c=document.createElement("canvas"), x=c.getContext("2d"); let info;
@@ -161,7 +161,7 @@ function openShareSheet(){
     <div><span class="lbl">Compartir la sessió</span><h2 style="margin:4px 0 0">Per a la teva <em>story</em></h2></div>
     <button class="go" data-sh="photo" style="font-size:18px!important">📸 Story amb una foto teva</button>
     <button data-sh="sticker" class="shopt"><b>🏷️ Sticker transparent</b><span>Per posar a sobre d'un vídeo o foto a Instagram: copia'l i enganxa'l a la story</span></button>
-    <button data-sh="story" class="shopt"><b>📱 Story sense foto</b><span>Fons blau de 2UP (9:16)</span></button>
+    <button data-sh="story" class="shopt"><b>📱 Story sense foto</b><span>Fons fosc de NEXFORM (9:16)</span></button>
     <button data-sh="post" class="shopt"><b>🖼️ Post (4:5)</b><span>Per al feed</span></button>
     <button class="plain" data-shx>Cancel·lar</button>
     <input type="file" id="sh-file" accept="image/*" hidden></div>`;
@@ -192,7 +192,7 @@ function wrap(x,t,X,Y,maxW,lh){const ws=t.split(" ");let l="";for(const w of ws)
 document.head.insertAdjacentHTML("beforeend",`<style>
 .hello h1{font-size:44px}
 .qchat{display:flex;gap:10px;align-items:flex-start}
-.qav{flex-shrink:0;width:42px;height:42px;border-radius:50%;background:var(--grad);display:flex;align-items:center;justify-content:center;font-family:var(--display);font-weight:800;font-style:italic;font-size:22px;color:#fff;box-shadow:0 6px 18px -6px var(--accent)}
+.qav{flex-shrink:0;width:42px;height:42px;border-radius:50%;background:var(--grad);display:flex;align-items:center;justify-content:center;font-family:var(--display);font-weight:800;font-style:italic;font-size:22px;color:var(--accent-ink);box-shadow:0 6px 18px -6px var(--accent)}
 .qbody{min-width:0;flex:1;display:flex;flex-direction:column;gap:5px}
 .qhead{display:flex;align-items:center;gap:8px}
 .qia{font-size:10px;font-weight:700;letter-spacing:.08em;padding:2px 6px;border-radius:6px;background:var(--accent-soft);color:var(--accent)}

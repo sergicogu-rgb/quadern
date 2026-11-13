@@ -1,4 +1,4 @@
-/* 2UP · lògica de l'app (abans dins index.html; separat el 2026-11-10 perquè la CSP no hagi de permetre scripts integrats) */
+/* NEXFORM · lògica de l'app (abans dins index.html; separat el 2026-11-10 perquè la CSP no hagi de permetre scripts integrats) */
 const MUSCLES=["Pit","Esquena","Espatlles","Bíceps","Tríceps","Quàdriceps","Isquiotibials","Glutis","Bessons","Abdominals","Avantbraç","Altres"];
 const VIEWS=["avui","pes","progres","setmana","any","nutricio","informes","clients","resum","rutines","pauta","fitxa"];
 const ALIAS={registre:"avui",historial:"setmana"};
@@ -161,7 +161,7 @@ function renderTop(){
       <button class="pos" id="t-list" aria-label="Llista d'exercicis">${n?i+1:0} / ${n}</button>
       <button class="fin ${draft.id?"primary":""}" id="t-fin">${draft.id?"Desar":"Finalitzar"}</button></div>`;
   } else {
-    t.innerHTML=`<span class="brand">2UP <i>coached by Atlas</i></span><span style="display:flex;align-items:center;gap:2px">${IS_COACH()?`<button class="plain" id="t-clients" aria-label="Clients" style="font-size:15px;font-weight:700;padding:4px 8px;color:var(--accent)">Clients</button>`:""}<button class="plain" id="t-acc" aria-label="Compte i dades" style="font-size:20px;padding:4px 8px">⚙︎</button></span>`;
+    t.innerHTML=`<span class="brand">${window.NX_LOGO||"NEXFORM"} <i>coached by ELION</i></span><span style="display:flex;align-items:center;gap:2px">${IS_COACH()?`<button class="plain" id="t-clients" aria-label="Clients" style="font-size:15px;font-weight:700;padding:4px 8px;color:var(--accent)">Clients</button>`:""}<button class="plain" id="t-acc" aria-label="Compte i dades" style="font-size:20px;padding:4px 8px">⚙︎</button></span>`;
   }
 }
 $("#top").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;
@@ -403,8 +403,8 @@ async function pushUI(){
   const P=window.QStore&&window.QStore.push, el=$("#acc-push"), b=$("#acc-notif"); if(!P||!el) return;
   const st=await P.state();
   const txt={on:"🔔 Notificacions activades en aquest mòbil.",off:"Activa les notificacions per rebre el pla del dia i l'informe del diumenge.",
-    denied:"Les notificacions estan bloquejades. Activa-les a Ajustos → Notificacions → 2UP.",
-    install:"Per rebre notificacions, obre 2UP des de la icona de la pantalla d'inici.",unsupported:"Aquest mòbil no admet notificacions (cal iOS 16.4 o posterior)."}[st];
+    denied:"Les notificacions estan bloquejades. Activa-les a Ajustos → Notificacions → NEXFORM.",
+    install:"Per rebre notificacions, obre NEXFORM des de la icona de la pantalla d'inici.",unsupported:"Aquest mòbil no admet notificacions (cal iOS 16.4 o posterior)."}[st];
   el.textContent=txt; if(b){ b.hidden=!(st==="off"||st==="on"); b.textContent=st==="on"?"Enviar una notificació de prova":"🔔 Activar notificacions"; b.className=st==="on"?"":"primary"; b.dataset.st=st }
 }
 $("#scrim").addEventListener("click",async e=>{
@@ -484,7 +484,7 @@ function renderSummary(){
 /* còpia de seguretat */
 function backupJSON(){const c={};Object.keys(S).forEach(k=>{c[k]=(S[k]||[]).map(d=>({...d}))});return JSON.stringify({app:"quadern",version:1,exportedAt:new Date().toISOString(),collections:c})}
 async function exportData(b){
-  const name="2up-copia-"+todayISO()+".json", txt=backupJSON();
+  const name="nexform-copia-"+todayISO()+".json", txt=backupJSON();
   if(!window.QStore){ let dl=null; try{dl=await window.qapp.use("downloads")}catch(e){}
     if(!dl){toast("En aquesta vista no es poden descarregar fitxers");return}
     try{await dl.save({filename:name,data:new Blob([txt],{type:"application/json"})});toast("Còpia preparada")}catch(e){toast("Descàrrega cancel·lada")} return }
@@ -493,7 +493,7 @@ async function exportData(b){
 async function importData(file){
   if(!db){toast("Inicia sessió primer");return}
   let j=null; try{j=JSON.parse(await file.text())}catch(e){toast("El fitxer no és una còpia vàlida");return}
-  if(!j||j.app!=="quadern"||!j.collections){toast("El fitxer no és una còpia de 2UP");return}
+  if(!j||j.app!=="quadern"||!j.collections){toast("El fitxer no és una còpia de NEXFORM");return}
   let n=0; for(const [col,docs] of Object.entries(j.collections)){ if(col==="drafts") continue;
     for(const d of docs||[]){ const {id,...rest}=d; if(!id) continue;
       if(rest.photo&&!/supabase\.co\//.test(rest.photo)){delete rest.photo;delete rest.photoId}

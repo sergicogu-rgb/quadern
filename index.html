@@ -1,22 +1,22 @@
 <!doctype html><html lang="ca"><head><meta charset="utf-8">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https://tsgvbxvrufuqlbzekmwd.supabase.co; connect-src 'self' https://tsgvbxvrufuqlbzekmwd.supabase.co wss://tsgvbxvrufuqlbzekmwd.supabase.co; worker-src 'self'; manifest-src 'self'; media-src 'self' blob: data:; object-src 'none'; base-uri 'self'; form-action 'self'">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#08082a">
+<meta name="theme-color" content="#07090D">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="2UP">
+<meta name="apple-mobile-web-app-title" content="NEXFORM">
 <link rel="manifest" href="manifest.webmanifest">
-<link rel="apple-touch-icon" href="apple-touch-icon.png?v=3">
-<link rel="icon" href="icon-192.png?v=3">
+<link rel="apple-touch-icon" href="apple-touch-icon.png?v=4">
+<link rel="icon" href="icon-192.png?v=4">
 <style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif}img{max-width:100%}[hidden]{display:none!important}
-#login{position:fixed;inset:0;z-index:50;background:var(--bg,#08082a);color:var(--fg,#eef1f4);overflow:auto;padding:calc(40px + env(safe-area-inset-top,0px)) max(20px,env(safe-area-inset-right,0px)) 40px max(20px,env(safe-area-inset-left,0px))}
+#login{position:fixed;inset:0;z-index:50;background:var(--bg,#07090D);color:var(--fg,#eef1f4);overflow:auto;padding:calc(40px + env(safe-area-inset-top,0px)) max(20px,env(safe-area-inset-right,0px)) 40px max(20px,env(safe-area-inset-left,0px))}
 .lgin{max-width:420px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
-.lgbrand{font-family:Inter,system-ui,sans-serif;font-weight:800;font-size:22px;letter-spacing:-.03em}.lgbrand i{font-style:italic;font-weight:600;color:var(--accent,#5b8cff)}</style>
+.lgbrand{display:flex;flex-direction:column;gap:8px;font-family:Inter,system-ui,sans-serif}.lgbrand .nxlogo{height:30px;width:auto;align-self:flex-start}.lgbrand i{font-style:normal;font-weight:600;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted,#8B97A6)}</style>
 <script src="vendor/supabase-2.45.4.js"></script>
 <script src="store.js"></script>
 </head><body>
-<title>2UP</title>
+<title>NEXFORM</title>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -24,21 +24,22 @@
 <style>
 /* Layout: app mòbil fosca d'una columna. Inici amb la rutina del dia; mode sessió amb un exercici cada vegada i barra d'accions fixa a baix */
 :root{
-  --bg:#08082a; --surface:#10113a; --raise:#191b4a; --fg:#f1f2fb; --muted:#9097c6; --line:#252866;
-  --accent:#5b8cff; --accent-2:#34d4ff; --accent-ink:#ffffff; --accent-soft:#1a2166;
-  --grad:linear-gradient(135deg,#5b8cff 0%,#34d4ff 100%);
-  --good:#3ecf8e; --good-ink:#06281a; --good-soft:#11291f; --warn:#f5b04c; --warn-soft:#30250f; --bad:#ff6b6b; --bad-soft:#341619;
+  --bg:#07090D; --surface:#121821; --raise:#1B2330; --fg:#EDF2F7; --muted:#8B97A6; --line:#263040;
+  --accent:#C8FF2E; --accent-2:#22E3D2; --accent-ink:#07090D; --accent-soft:#1E2A0E;
+  --grad:linear-gradient(135deg,#C8FF2E 0%,#22E3D2 100%);
+  --good:#3ecf8e; --good-ink:#06281a; --good-soft:#11291f; --warn:#FFB23F; --warn-soft:#30250f; --bad:#FF4F64; --bad-soft:#341619;
+  --logo-n:#C8FF2E; --logo-s:#22E3D2; --cta:var(--grad); --cta-ink:#07090D;
   --display:"Inter","Inter Display",system-ui,-apple-system,"Segoe UI",sans-serif;
   --body:"Inter",system-ui,-apple-system,"Segoe UI",sans-serif;
   color-scheme:dark;
 }
 @media (prefers-color-scheme: light){:root:not([data-theme="dark"]){
-  --bg:#f2f3f5; --surface:#ffffff; --raise:#eceef1; --fg:#12161a; --muted:#5b6571; --line:#d8dce1;
-  --accent:#2f5fe0; --accent-2:#0aa5d6; --accent-ink:#ffffff; --accent-soft:#e3eaff; --grad:linear-gradient(135deg,#2f5fe0 0%,#0aa5d6 100%);
+  --bg:#F2F4F6; --surface:#ffffff; --raise:#E9EDF1; --fg:#0B1016; --muted:#556170; --line:#DCE1E7;
+  --accent:#4D7A00; --accent-2:#007A70; --accent-ink:#ffffff; --accent-soft:#E8F3D2; --grad:linear-gradient(135deg,#4D7A00 0%,#007A70 100%); --logo-n:#0B1016; --logo-s:#007A70; --cta:linear-gradient(135deg,#C8FF2E 0%,#A6F01C 100%); --cta-ink:#07090D;
   --good:#13804f; --good-ink:#ffffff; --good-soft:#dcf3e7; --warn:#9a5b00; --warn-soft:#fbeed6; --bad:#c62828; --bad-soft:#fde3e3; color-scheme:light }}
 :root[data-theme="light"]{
-  --bg:#f2f3f5; --surface:#ffffff; --raise:#eceef1; --fg:#12161a; --muted:#5b6571; --line:#d8dce1;
-  --accent:#2f5fe0; --accent-2:#0aa5d6; --accent-ink:#ffffff; --accent-soft:#e3eaff; --grad:linear-gradient(135deg,#2f5fe0 0%,#0aa5d6 100%);
+  --bg:#F2F4F6; --surface:#ffffff; --raise:#E9EDF1; --fg:#0B1016; --muted:#556170; --line:#DCE1E7;
+  --accent:#4D7A00; --accent-2:#007A70; --accent-ink:#ffffff; --accent-soft:#E8F3D2; --grad:linear-gradient(135deg,#4D7A00 0%,#007A70 100%); --logo-n:#0B1016; --logo-s:#007A70; --cta:linear-gradient(135deg,#C8FF2E 0%,#A6F01C 100%); --cta-ink:#07090D;
   --good:#13804f; --good-ink:#ffffff; --good-soft:#dcf3e7; --warn:#9a5b00; --warn-soft:#fbeed6; --bad:#c62828; --bad-soft:#fde3e3; color-scheme:light }
 
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -81,7 +82,7 @@ button:disabled{opacity:.5;cursor:default}
 /* capçalera */
 .top{position:sticky;top:env(safe-area-inset-top,0px);z-index:6;background:var(--bg);display:flex;align-items:center;justify-content:space-between;gap:10px;padding-block:12px 10px}
 .brand{font-family:var(--display);font-weight:800;font-size:19px;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap}
-.brand i{font-style:normal;color:var(--accent)}
+.brand i{font-style:normal;color:var(--accent)}.brand{display:inline-flex;align-items:center;gap:8px}.brand .nxlogo{height:17px;width:auto;flex:none}
 .top .lbl{text-align:right}
 .wotop{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px;width:100%}
 .wotop .clock{font-family:var(--display);font-size:28px;font-weight:800;font-variant-numeric:tabular-nums;display:flex;align-items:center;gap:8px}
@@ -98,7 +99,7 @@ button:disabled{opacity:.5;cursor:default}
 .hero::before{content:"";position:absolute;right:-60px;top:-60px;width:180px;height:180px;border-radius:50%;border:26px solid var(--accent-soft);pointer-events:none}
 .hero>*{position:relative;z-index:1}
 .hero-top{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;position:relative;z-index:1}
-.tag{display:inline-block;font-family:var(--display);font-size:15px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accent-ink);background:var(--grad);padding:3px 10px;border-radius:999px}
+.tag{display:inline-block;font-family:var(--display);font-size:15px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--cta-ink);background:var(--cta);padding:3px 10px;border-radius:999px}
 .hero h2{font-size:36px;position:relative;z-index:1}
 .plist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
 .plist li{display:grid;grid-template-columns:24px minmax(0,1fr) 26px;gap:4px 10px;align-items:center;padding:10px 0;border-top:1px solid var(--line)}
@@ -108,7 +109,7 @@ button:disabled{opacity:.5;cursor:default}
 .plist .tg{font-size:14px;color:var(--muted)}
 .bd{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:8px;font-weight:700;font-size:14px;background:var(--raise);color:var(--muted)}
 .bd.up{background:var(--good-soft);color:var(--good)} .bd.down{background:var(--bad-soft);color:var(--bad)}
-button.go{font-family:var(--display);font-size:24px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;padding:16px;border-radius:16px;background:var(--grad);border:0;box-shadow:0 10px 30px -8px color-mix(in srgb,var(--accent) 70%,transparent);color:var(--accent-ink);display:flex;align-items:center;justify-content:center;gap:10px}
+button.go{font-family:var(--display);font-size:24px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;padding:16px;border-radius:16px;background:var(--cta);border:0;box-shadow:0 10px 30px -8px color-mix(in srgb,var(--accent) 70%,transparent);color:var(--cta-ink);display:flex;align-items:center;justify-content:center;gap:10px}
 .chips{display:flex;gap:8px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none}
 .chips::-webkit-scrollbar{display:none}
 .chips button{flex:0 0 auto;border-radius:999px;padding:8px 14px;font-size:14px;color:var(--muted)}
