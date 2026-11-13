@@ -81,6 +81,40 @@ function evoCard(){
     </span></button>`;
 }
 
+/* ---------- interacció: escenari amb inclinació 3D, escàner d'ELION i comparador ---------- */
+function evoStage(d,c){
+  const lv=d.level||1, v=d.variant==="f"?"f":"m", src=`avatars/${esc(d.model||"base")}/${v}/${lv}.webp`;
+  const chg=c.weight_chg_pct, hud=[
+    ["🏋️",`${c.sessions!=null?c.sessions:0}/${c.planned||"–"}`,"sessions"],
+    ["💪",c.strength_ok!=null?`${c.strength_ok} %`:"–","força"],
+    ["⚖️",chg!=null?`${chg>0?"+":""}${fn(chg,1)} %`:"–","pes setm."],
+    ["⚡",fn(d.points,0),"punts"]];
+  return `<div class="evo-stage" style="--m:url('${src}')" role="img" aria-label="Avatar nivell ${lv}. Arrossega per girar-lo i toca'l per escanejar-lo.">
+    ${evoAvatar(d,lv,"big")}<span class="evo-scan" aria-hidden="true"></span>
+    <div class="evo-hud" aria-hidden="true">${hud.map(([i,val,t],k)=>`<span class="h${k}" style="--d:${.15+k*.12}s"><em>${i}</em><b>${esc(String(val))}</b><small>${t}</small></span>`).join("")}</div>
+  </div><span class="evo-hint">Arrossega per girar · toca per escanejar</span>`;
+}
+function evoCompare(d,nx){
+  if(!nx) return "";
+  return `<div class="card stack" style="gap:8px"><span class="lbl">Compara amb el nivell següent</span>
+    <div class="evo-cmp" style="--p:50%">
+      <div class="a">${evoAvatar(d,d.level)}</div><div class="b">${evoAvatar(d,nx.level)}</div>
+      <span class="evo-cmp-h" aria-hidden="true"></span>
+      <span class="evo-cmp-t l">Ara · ${EVO_NAMES[d.level]}</span><span class="evo-cmp-t r">Nivell ${nx.level} · ${EVO_NAMES[nx.level]}</span>
+      <input type="range" id="evo-cmp-r" min="0" max="100" value="50" aria-label="Compara el teu nivell amb el següent">
+    </div><span class="sub" style="font-size:12px">Llisca per veure on et porta el pla si continues així.</span></div>`;
+}
+let EVO_drag=null;
+function evoTilt(s,ry,rx){ s.style.setProperty("--ry",ry+"deg"); s.style.setProperty("--rx",rx+"deg"); s.style.setProperty("--sh",(50+ry*1.8)+"%"); s.style.setProperty("--tx",(-ry)+"px") }
+function evoScan(s){ s.classList.remove("scan"); void s.offsetWidth; s.classList.add("scan"); s.classList.toggle("hud-on") }
+document.addEventListener("pointerdown",e=>{ const s=e.target.closest&&e.target.closest(".evo-stage"); if(!s) return;
+  EVO_drag={s,x:e.clientX,y:e.clientY,moved:false}; s.classList.add("drag"); try{s.setPointerCapture(e.pointerId)}catch(_){} });
+document.addEventListener("pointermove",e=>{ const g=EVO_drag; if(!g) return; const dx=e.clientX-g.x, dy=e.clientY-g.y;
+  if(Math.abs(dx)+Math.abs(dy)>6) g.moved=true; evoTilt(g.s,Math.max(-30,Math.min(30,dx/3.5)),Math.max(-10,Math.min(10,-dy/8))) });
+function evoRelease(){ const g=EVO_drag; if(!g) return; EVO_drag=null; g.s.classList.remove("drag"); evoTilt(g.s,0,0); if(!g.moved) evoScan(g.s) }
+document.addEventListener("pointerup",evoRelease); document.addEventListener("pointercancel",()=>{ const g=EVO_drag; if(g){g.moved=true; evoRelease()} });
+document.addEventListener("input",e=>{ if(e.target&&e.target.id==="evo-cmp-r"){ const b=e.target.closest(".evo-cmp"); if(b) b.style.setProperty("--p",e.target.value+"%") } });
+
 /* ---------- detall ---------- */
 function evoDetail(){
   const d=EVO; if(!d) return "";
@@ -96,15 +130,16 @@ function evoDetail(){
   const vsel=evoMine()?`<div class="stack" style="gap:6px"><span class="lbl">Avatar</span><div class="chips">${[["auto","Segons el perfil"],["m","Masculí"],["f","Femení"]].map(([k,t])=>`<button data-evo-var="${k}" class="${(d.variant_pref||"auto")===k?"on":""}">${t}</button>`).join("")}</div></div>`:"";
   return `<div id="evo-ov" class="evo-ov"><div class="evo-bg" data-evo-close></div><div class="evo-box">
     <button class="plain evo-x" data-evo-close aria-label="Tancar">✕</button>
-    ${evoAvatar(d,d.level,"big")}
+    ${evoStage(d,c)}
     <div style="text-align:center"><span class="lbl">ELION Evolution</span><h2>Nivell ${d.level} · ${EVO_NAMES[d.level]}</h2></div>
     <span class="evo-bar"><i style="width:${b.pct.toFixed(1)}%"></i></span><span class="evo-sub" style="text-align:center">${esc(b.txt)}</span>
     <div class="card stack" style="gap:10px"><span class="lbl">Aquesta setmana · ${c.score!=null?c.score:"–"}/100</span>${parts}
       ${why.length?`<ul class="evo-why">${why.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>`:""}</div>
     <div class="card stack" style="gap:6px"><span class="lbl">Objectiu següent</span><b>${nx?`Nivell ${nx.level} · ${EVO_NAMES[nx.level]}`:"ELION ELITE"}</b><span class="sub">${esc(goal)}</span></div>
+    ${evoCompare(d,nx)}
     <div class="card stack" style="gap:6px"><span class="lbl">Últimes setmanes</span>${evoSpark(d.history,c.score)||'<span class="sub">Encara no hi ha cap setmana tancada.</span>'}</div>
     ${vsel}
-    <p class="sub" style="font-size:12px">Cada setmana tancada suma punts segons el compliment del pla. El nivell no baixa mai: una setmana complicada només fa avançar menys. ${d.model==="base"?"Les imatges definitives de l'avatar estan en preparació.":""}</p>
+    <p class="sub" style="font-size:12px">Cada setmana tancada suma punts segons el compliment del pla. El nivell no baixa mai: una setmana complicada només fa avançar menys.</p>
   </div></div>`;
 }
 function evoShow(){ const o=$("#evo-ov"); if(o) o.remove(); document.body.insertAdjacentHTML("beforeend",evoDetail()); EVO_open=true }
@@ -208,5 +243,44 @@ document.head.insertAdjacentHTML("beforeend",`<style>
 @keyframes evoOut{0%{opacity:1;filter:none}70%{opacity:.8;filter:brightness(2.2) blur(2px);transform:scale(1.04)}100%{opacity:0;filter:brightness(3) blur(6px)}}
 @keyframes evoIn{0%{opacity:0;filter:brightness(3) blur(6px);transform:scale(.96)}100%{opacity:1;filter:none;transform:none}}
 @keyframes evoRing{0%{opacity:.9;transform:scale(.5)}100%{opacity:0;transform:scale(6)}}
-@media (prefers-reduced-motion:reduce){.evo-morph .from{animation:none;opacity:0}.evo-morph .to{animation:none;opacity:1}.evo-ring{display:none}}
+.evo-av img{animation:evoBreath 4.8s ease-in-out infinite;transform-origin:50% 100%}
+@keyframes evoBreath{0%,100%{transform:none}50%{transform:scale(1.006,1.012)}}
+.evo-stage{position:relative;width:100%;max-width:380px;height:300px;margin:0 auto;perspective:800px;touch-action:pan-y;cursor:grab;user-select:none;-webkit-user-select:none}
+.evo-stage.drag{cursor:grabbing}
+.evo-stage::before{content:"";position:absolute;left:50%;bottom:10px;width:150px;height:18px;margin-left:-75px;border-radius:50%;
+  background:radial-gradient(closest-side,color-mix(in srgb,var(--accent-2) 35%,transparent),transparent);transform:translateX(var(--tx,0px))}
+.evo-stage .evo-av.big{margin:10px auto 0;transform:rotateX(var(--rx,0deg)) rotateY(var(--ry,0deg));transition:transform .6s cubic-bezier(.2,.9,.25,1.2);will-change:transform}
+.evo-stage.drag .evo-av.big{transition:none}
+.evo-stage .evo-av.big::after,.evo-stage .evo-av.big::before{content:"";position:absolute;inset:0;pointer-events:none;
+  -webkit-mask-image:var(--m);mask-image:var(--m);-webkit-mask-size:contain;mask-size:contain;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;-webkit-mask-position:center;mask-position:center}
+.evo-stage .evo-av.big::after{z-index:2;background:linear-gradient(100deg,transparent calc(var(--sh,50%) - 16%),rgba(255,255,255,.22) var(--sh,50%),transparent calc(var(--sh,50%) + 16%));opacity:0;transition:opacity .3s}
+.evo-stage.drag .evo-av.big::after{opacity:1}
+.evo-stage .evo-av.big::before{z-index:2;background:linear-gradient(180deg,transparent 0 var(--scan,0%),color-mix(in srgb,var(--accent-2) 55%,transparent) var(--scan,0%),transparent calc(var(--scan,0%) + 8%));opacity:0}
+.evo-stage.scan .evo-av.big::before{animation:evoScanBody 1.4s ease-in-out}
+.evo-scan{position:absolute;left:8%;right:8%;top:10px;height:2px;border-radius:2px;background:var(--accent-2);box-shadow:0 0 14px 3px color-mix(in srgb,var(--accent-2) 70%,transparent);opacity:0;pointer-events:none;z-index:3}
+.evo-stage.scan .evo-scan{animation:evoScanLine 1.4s ease-in-out}
+@property --scan{syntax:"<percentage>";inherits:true;initial-value:0%}
+@keyframes evoScanLine{0%{top:10px;opacity:0}10%{opacity:1}90%{opacity:1}100%{top:280px;opacity:0}}
+@keyframes evoScanBody{0%{--scan:0%;opacity:1}100%{--scan:100%;opacity:1}}
+.evo-hud{position:absolute;inset:0;pointer-events:none;z-index:4}
+.evo-hud span{position:absolute;display:flex;flex-direction:column;align-items:flex-start;gap:0;padding:6px 9px;min-width:78px;border-radius:10px;
+  background:color-mix(in srgb,var(--surface) 82%,transparent);border:1px solid color-mix(in srgb,var(--accent-2) 55%,transparent);
+  backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);opacity:0;transform:translateY(6px);transition:opacity .35s var(--d),transform .35s var(--d)}
+.evo-hud em{font-style:normal;font-size:13px;line-height:1}.evo-hud b{font-family:var(--display);font-size:16px;font-variant-numeric:tabular-nums;color:var(--fg)}
+.evo-hud small{font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--accent-2)}
+.evo-hud .h0{left:0;top:40px}.evo-hud .h1{left:0;top:150px}.evo-hud .h2{right:0;top:70px}.evo-hud .h3{right:0;top:180px}
+.evo-stage.hud-on .evo-hud span{opacity:1;transform:none}
+.evo-hint{display:block;text-align:center;font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-top:-6px}
+.evo-cmp{position:relative;height:280px;border-radius:14px;overflow:hidden;background:radial-gradient(70% 60% at 50% 45%,color-mix(in srgb,var(--accent-2) 16%,transparent),transparent 75%)}
+.evo-cmp .a,.evo-cmp .b{position:absolute;inset:0}
+.evo-cmp .evo-av{position:absolute;inset:0;width:100%;height:100%;border-radius:0;background:none}
+.evo-cmp .b{clip-path:inset(0 0 0 var(--p))}
+.evo-cmp .a{clip-path:inset(0 calc(100% - var(--p)) 0 0)}
+.evo-cmp-h{position:absolute;top:0;bottom:0;left:var(--p);width:2px;margin-left:-1px;background:var(--accent);box-shadow:0 0 10px color-mix(in srgb,var(--accent) 70%,transparent);pointer-events:none}
+.evo-cmp-h::after{content:"⟷";position:absolute;top:50%;left:50%;width:30px;height:30px;margin:-15px;border-radius:50%;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;font-size:15px;font-weight:800}
+.evo-cmp-t{position:absolute;bottom:8px;font-size:11px;font-weight:700;letter-spacing:.04em;padding:3px 8px;border-radius:999px;background:color-mix(in srgb,var(--surface) 85%,transparent);pointer-events:none}
+.evo-cmp-t.l{left:8px}.evo-cmp-t.r{right:8px;color:var(--accent)}
+.evo-cmp input{position:absolute;inset:0;width:100%;height:100%;margin:0;opacity:0;cursor:ew-resize;touch-action:pan-y}
+@media (prefers-reduced-motion:reduce){.evo-morph .from{animation:none;opacity:0}.evo-morph .to{animation:none;opacity:1}.evo-ring{display:none}
+  .evo-av img{animation:none}.evo-stage .evo-av.big{transition:none}.evo-stage.scan .evo-scan,.evo-stage.scan .evo-av.big::before{animation:none}.evo-hud span{transition:none}}
 </style>`);
