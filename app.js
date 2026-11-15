@@ -169,11 +169,21 @@ $("#top").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)
 const liveBanner=()=>draft.startedAt&&!draft.id?`<a href="#avui" class="live" style="text-decoration:none;color:var(--fg)"><span><span class="dot"></span>Sessió en curs · <b class="num" id="clk2">${fmtClock((Date.now()-Date.parse(draft.startedAt))/1000)}</b></span><span class="lbl" style="color:var(--accent)">Tornar ›</span></a>`:"";
 
 /* ---------- INICI ---------- */
-function nextTemplate(tpls){
+/* Calendari fix: 4 sessions per setmana (Dl, Dt, Dj, Dv); cada dia pautat té la seva rutina
+   (1a, 2a, 3a, 4a en l'ordre de les rutines). Una sessió no feta NO es passa a la setmana següent. */
+const PLAN_DAYS=[0,1,3,4];
+function tplForDate(d,tpls){const k=PLAN_DAYS.indexOf((dt(d).getDay()+6)%7); return k<0||!tpls.length?null:tpls[k%tpls.length]}
+function nextTemplate(tpls,recover){
   if(!tpls.length) return null;
-  const last=sessionsSorted().find(s=>s.templateId&&tpls.some(t=>t.id===s.templateId));
-  if(!last) return tpls[0];
-  const i=tpls.findIndex(t=>t.id===last.templateId); return tpls[(i+1)%tpls.length];
+  const today=todayISO();
+  if(!S.sessions.some(s=>s.date===today)){
+    const t=tplForDate(today,tpls); if(t) return t;
+    if(recover){ // dia no pautat ("Entrenar igualment"): recupera una rutina d'aquesta mateixa setmana encara no feta
+    const ws=weekStart(today), we=addDays(ws,6), done=new Set(S.sessions.filter(s=>s.date>=ws&&s.date<=we).map(s=>s.templateId));
+    for(let k=0;k<7;k++){const d=addDays(ws,k); if(d>=today) break; const m=tplForDate(d,tpls); if(m&&!done.has(m.id)) return m}}
+  }
+  for(let k=1;k<=7;k++){const t=tplForDate(addDays(today,k),tpls); if(t) return t}
+  return tpls[0];
 }
 function loadTemplate(tp){
   draft.templateId=tp.id; draft.name=tp.name; draft.date=todayISO(); draft.cur=0;
@@ -248,7 +258,7 @@ $("#v-avui").addEventListener("click",async e=>{
   if(b.closest(".wo")) return woClick(e,b);
   if(b.dataset.rest){ const d=todayISO(), l=restDone(d), k=b.dataset.rest; const n=l.includes(k)?l.filter(x=>x!==k):[...l,k];
     try{localStorage.setItem(restKey(d),JSON.stringify(n))}catch(err){} render(); return }
-  if(b.id==="rd-train"){ const n=nextTemplate(tplsSorted()); if(n){ loadTemplate(n); draft.manual=true; draft.touched=false; saveDraft(); render(); } return }
+  if(b.id==="rd-train"){ const n=nextTemplate(tplsSorted(),true); if(n){ loadTemplate(n); draft.manual=true; draft.touched=false; saveDraft(); render(); } return }
   if(b.id==="h-start"){ draft.startedAt=new Date().toISOString(); draft.cur=0; draft.date=todayISO(); saveDraft(); unlockAudio(); wake(); render(); window.scrollTo(0,0); return }
   if(b.dataset.tpl){ const tp=S.templates.find(t=>t.id===b.dataset.tpl); if(tp){ loadTemplate(tp); draft.manual=true; draft.touched=false; saveDraft(); render(); } return }
   if(b.dataset.bw){ const i=$("#q-kg"); const v=(num(i.value)??num(i.placeholder)??0)+ +b.dataset.bw; i.value=fin(Math.round(v*10)/10); return }
@@ -622,13 +632,12 @@ $("#v-progres").addEventListener("click",e=>{const b=e.target.closest("button");
   if(b.dataset.ex){progEx=b.dataset.ex;renderProgres();window.scrollTo(0,0)} else if(b.id==="p-back"){progEx=null;renderProgres()}});
 
 /* ---------- SETMANA ---------- */
-const PLAN_DAYS=[0,1,3,4]; const WD=["Dl","Dt","Dc","Dj","Dv","Ds","Dg"];
+const WD=["Dl","Dt","Dc","Dj","Dv","Ds","Dg"];
 let selDay=null;
 function weekAgenda(ws){
   const tpls=tplsSorted(), today=todayISO();
   const days=Array.from({length:7},(_,i)=>{const d=addDays(ws,i);return {d,i,sess:S.sessions.filter(s=>s.date===d),planned:PLAN_DAYS.includes(i)}});
-  let left=Math.max(0,4-days.reduce((a,x)=>a+x.sess.length,0)); const nt=nextTemplate(tpls); let idx=nt?tpls.indexOf(nt):-1;
-  days.forEach(x=>{ if(!x.sess.length&&x.d>=today&&tpls.length&&left>0&&x.planned){x.tpl=tpls[idx%tpls.length];idx++;left--;} });
+  days.forEach(x=>{ if(!x.sess.length&&x.d>=today&&x.planned) x.tpl=tplForDate(x.d,tpls); });
   return days;
 }
 function sessCard(s){

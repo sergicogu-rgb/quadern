@@ -233,7 +233,7 @@ const parseRanges=s=>String(s||"").split(/[,;·]/).map(x=>x.match(/(\d+)\s*[-–
 function renderRutines(){
   const el=$("#v-rutines"); const tp=tplsSorted();
   const exOpts=MUSCLES.map(m=>{const xs=S.exercises.filter(e=>(e.muscle||"Altres")===m).sort((a,b)=>a.name.localeCompare(b.name));return xs.length?`<optgroup label="${esc(m)}">${xs.map(e=>`<option value="${esc(e.id)}">${esc(e.name)}</option>`).join("")}</optgroup>`:""}).join("");
-  let h=`<div class="stack"><div class="vhead"><span class="lbl">${CV()?esc(QStore.viewing.name):"Les meves"} · en ordre de rotació</span><h1>Rutines</h1></div>${CV()?planReviewCard():""}`;
+  let h=`<div class="stack"><div class="vhead"><span class="lbl">${CV()?esc(QStore.viewing.name):"Les meves"} · Dl · Dt · Dj · Dv</span><h1>Rutines</h1></div>${CV()?planReviewCard():""}`;
   if(!tp.length) h+=`<div class="empty"><b>Encara no hi ha rutines</b>Crea'n una o copia les d'un altre quadern.</div>`;
   tp.forEach((t,k)=>{
     h+=`<article class="card stack"><div class="row" style="align-items:center"><span class="big" style="font-size:22px;color:var(--muted);flex:0 0 auto">${k+1}</span>
