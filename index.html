@@ -332,8 +332,8 @@ details.card[open] summary{margin-bottom:10px}
 .tips{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:5px;font-size:14px}
 @media (max-width:380px){.mac{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media (max-width:380px){.tiles{grid-template-columns:repeat(2,minmax(0,1fr))} .bar{grid-template-columns:6rem 1fr 2.2rem} h1{font-size:34px}}
-/* mode entrenador: el registre (pes, kcal) només el fa el client */
-body.cv .card:has(#b-kg),body.cv .card:has(#n-kcal){display:none}
+/* mode entrenador: el registre del pes només el fa el client */
+body.cv .card:has(#b-kg){display:none}
 body.cv [data-go],body.cv [data-act],body.cv [data-bwdel],body.cv #lb-change{display:none}
 body.cv .top .brand{font-size:18px}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}

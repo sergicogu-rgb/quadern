@@ -78,9 +78,9 @@ function renderClients(){
     h+=`<article class="card stack"><div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start">
       <div style="min-width:0"><h3 style="margin:0">${esc(c.name||c.email)}</h3><div class="sub" style="font-size:13px;overflow:hidden;text-overflow:ellipsis">${esc(c.email||"")}</div></div>
       <div class="ph" style="justify-content:flex-end">${cons}</div></div>
-      <div class="tiles"><div class="tile"><div class="lbl">Sessions 7 d</div><div class="v">${c.sessions_7d||0}</div></div>
+      <div class="tiles" style="grid-template-columns:repeat(2,minmax(0,1fr))"><div class="tile"><div class="lbl">Sessions 7 d</div><div class="v">${c.sessions_7d||0}</div></div>
         <div class="tile"><div class="lbl">Pes</div><div class="v">${c.last_weight!=null?fn(+c.last_weight,1):"–"}<small> kg</small></div></div>
-        <div class="tile"><div class="lbl">Kcal 7 d</div><div class="v">${c.kcal_7d!=null?fn(+c.kcal_7d,0):"–"}<small> · ${c.kcal_days_7d||0}/7</small></div></div></div>
+</div>
       <div class="sub num" style="font-size:13px">Últim entrenament: ${esc(ago(c.last_session))} · últim pes: ${esc(ago(c.last_weight_date))}</div>
       <div class="btns" style="margin:0"><button class="primary" data-open="${esc(c.id)}">Obrir</button>${c.consent_at?"":`<button data-wa="${esc(c.email)}" data-name="${esc(c.name||"")}">📲 Enllaç</button><button data-resend="${esc(c.email)}" data-name="${esc(c.name||"")}">Correu</button>`}
         <button class="danger" data-unlink="${esc(c.id)}">${unlinkConfirm===c.id?"Confirma: desvincular":"Desvincular"}</button></div></article>`;
@@ -150,7 +150,6 @@ function autoReport(ws){
   const bw=bwData(), wB=bw.filter(x=>x.date>=ws&&x.date<=we), pB=bw.filter(x=>x.date>=pws&&x.date<=pwe);
   const avg=a=>a.length?a.reduce((s,x)=>s+x.kg,0)/a.length:null;
   const bwA=avg(wB), bwP=avg(pB), dPct=bwA!=null&&bwP!=null?(bwA-bwP)/bwP*100:null;
-  const kc=S.kcallog.filter(x=>x.date>=ws&&x.date<=we&&x.kcal), kA=kc.length?kc.reduce((s,x)=>s+x.kcal,0)/kc.length:null;
   const P=pautaAt(we), tg=P&&P.targets?P.targets.kcal:null, ph=PHASES[phaseOf(P&&(P.phase||P.title))];
   const nT=S.templates.length;
   const notes=ses.map(s=>s.notes||"").filter(n=>/mol[eè]st|dolor|lesi|mal d|tib|punxada/i.test(n));
@@ -164,12 +163,9 @@ function autoReport(ws){
   }
   if(dPct!=null&&ph){const ok=dPct>=ph.lo-0.05&&dPct<=ph.hi+0.05;
     flags.push(`Pes ${dPct>0?"+":""}${fn(dPct,2)} % vs setmana anterior. Objectiu ${ph.t.toLowerCase()}: ${fn(ph.lo,2)} a ${fn(ph.hi,2)} %/setm. ${ok?"✓ Dins del ritme.":dPct<ph.lo?"Baixa massa ràpid.":dPct>ph.hi?"Puja massa ràpid o no baixa.":""}`)}
-  if(live) flags.push(`Kcal: ${kc.length} ${kc.length===1?"dia apuntat":"dies apuntats"} (amb 5 o més per setmana podem calibrar el teu manteniment).`);
-  else if(kc.length<5) flags.push(`Kcal registrades ${kc.length}/7 dies: amb menys de 5 no es pot calibrar el manteniment.`);
-  if(kA&&tg){const d=(kA-tg)/tg*100; flags.push(`Kcal mitjanes ${fn(kA,0)} vs pauta ${fn(tg,0)} (${d>0?"+":""}${fn(d,0)} %).${Math.abs(d)>10?" Desviació important.":""}`)}
   if(up+same+down) flags.push(`Rendiment: ${up} exercicis milloren, ${same} igual, ${down} baixen (1RM estimat vs la vegada anterior).`);
   if(notes.length) flags.push(`Hi ha ${notes.length} nota${notes.length>1?"es":""} amb molèsties: revisa-les.`);
-  return {ws,we,ses,sets,byM,prs,bwA,dPct,wBn:wB.length,kA,kn:kc.length,tg,flags,P};
+  return {ws,we,ses,sets,byM,prs,bwA,dPct,wBn:wB.length,tg,flags,P};
 }
 function autoReportCard(){
   const ws=repWeek||defWeek(); const r=autoReport(ws);
@@ -181,7 +177,7 @@ function autoReportCard(){
       <button class="plain" data-rw="7" aria-label="Setmana següent" ${ws>=cur?"disabled":""}>›</button></div>
     <div class="tiles"><div class="tile"><div class="lbl">Sessions</div><div class="v">${r.ses.length}<small> · ${r.sets.length} sèries</small></div></div>
       <div class="tile"><div class="lbl">Pes mitjà</div><div class="v">${r.bwA!=null?fn(r.bwA,1):"–"}<small>${r.dPct!=null?" · "+(r.dPct>0?"+":"")+fn(r.dPct,1)+" %":""}</small></div></div>
-      <div class="tile"><div class="lbl">Kcal</div><div class="v">${r.kA?fn(r.kA,0):"–"}<small> · ${r.kn}/7</small></div></div></div>
+      <div class="tile"><div class="lbl">Dies de pes</div><div class="v">${r.wBn}<small> / 7</small></div></div></div>
     <ul class="tips">${r.flags.map(f=>`<li>${esc(f)}</li>`).join("")}</ul>
     ${muscles.length?`<details><summary class="lbl" style="cursor:pointer">Sèries efectives per grup muscular</summary><div class="tw"><table><tbody>${muscles.map(([m,n])=>`<tr><td>${esc(m)}</td><td class="r num">${n}</td></tr>`).join("")}</tbody></table></div><p class="sub" style="font-size:12px">Referència per a hipertròfia: uns 10-20 sèries setmanals per grup, repartides en 2 dies o més.</p></details>`:""}
     ${r.prs.length?`<details><summary class="lbl" style="cursor:pointer">Rècords (${r.prs.length})</summary><div class="tw"><table><tbody>${r.prs.map(p=>`<tr><td>${esc(p.name)}</td><td class="r num">${p.sets.map(x=>fn(x.kg,2)+"×"+x.reps).join(" · ")}</td></tr>`).join("")}</tbody></table></div></details>`:""}
@@ -197,7 +193,7 @@ function welcomeReport(){
     ${sec("🏋️","Avui","Si toca entrenar, hi veuràs la rutina amb les càrregues proposades. Prem <b>Començar</b>, apunta kg i repeticions i toca ✓ en acabar cada sèrie. Els dies de descans t'ho indica i et recorda els hàbits del dia.")}
     ${sec("📈","Com progressem","Cada exercici té un rang de repeticions (per exemple 8–12). Quan arribes al màxim del rang a totes les sèries deixant-ne 2-3 a la recambra (RIR), l'app et proposa pujar el pes la vegada següent.")}
     ${sec("⚖️","Pes","Pesa't cada matí en dejú, després d'anar al lavabo. Compta la mitjana de la setmana, no el número d'un dia.")}
-    ${sec("🍽️","Menjar","Hi tens la pauta amb els àpats i les equivalències de cada aliment. Apunta les kcal de cada dia (també l'àpat lliure): amb 14 dies de registre calculem el teu manteniment real.")}
+    ${sec("🍽️","Menjar","Hi tens la pauta amb els àpats i les equivalències de cada aliment. Segueix-la cada dia: l'entrenador l'ajusta segons l'evolució del teu pes.")}
     ${sec("📊","Progrés, Setmana i Any","El 1RM estimat de cada exercici, la teva setmana i la constància de tot l'any.")}
     ${sec("📝","Informes","Aquí tens el resum automàtic de cada setmana i els informes del teu entrenador. "+esc(ai)+", l'entrenador IA, analitza les teves dades i proposa ajustos; el teu entrenador els revisa sempre abans que t'arribin.")}
     ${sec("⚙︎","Ajustos","Activa les notificacions i afegeix l'app a la pantalla d'inici. Des d'aquí també pots descarregar o esborrar les teves dades.")}
@@ -210,7 +206,7 @@ document.addEventListener("click",e=>{const b=e.target.closest("button[data-rw]"
 /* ---------- RESUM DEL CLIENT (vista de l'entrenador) ---------- */
 function renderResum(){
   const el=$("#v-resum"); const v=QStore.viewing||{}; const tp=tplsSorted(), nx=nextTemplate(tp), P=activePauta(), last=sessionsSorted()[0];
-  const bw=bwData(), lb=bw[bw.length-1], st=kcalStats();
+  const bw=bwData(), lb=bw[bw.length-1];
   el.innerHTML=`<div class="stack"><div class="vhead"><span class="lbl">${esc(v.email||"")}</span><h1>${esc(v.name||"Client")}</h1></div>
     ${typeof evoCard==="function"?evoCard():""}
     ${planReviewCard()}
@@ -222,7 +218,6 @@ function renderResum(){
       <tr><td>Últim entrenament</td><td class="r">${last?esc(fdate(last.date))+" · "+esc(last.name||""):"–"}</td></tr>
       <tr><td>Pauta activa</td><td class="r">${P?esc(P.title||P.phase||"")+" · "+fn((P.targets||{}).kcal,0)+" kcal":"<a href='#pauta'>Cap · crea-la</a>"}</td></tr>
       <tr><td>Últim pes</td><td class="r num">${lb?fn(lb.kg,2)+" kg · "+esc(fdate(lb.date)):"–"}</td></tr>
-      <tr><td>Manteniment estimat</td><td class="r num">${st.maint?fn(Math.round(st.maint/10)*10,0)+" kcal":"calen 14 dies ("+st.nL+"/14)"}</td></tr>
     </tbody></table></div>
     <p class="sub" style="font-size:13px">Les dades de registre (sessions, pes i kcal) només les pot introduir el client. Tu prepares les rutines, la pauta i els informes.</p></div>`;
 }
@@ -355,9 +350,9 @@ function peLoad(src,asNew){
 function calcTargets(){
   const c=pe.calc, kg=num(c.kg), cm=num(c.cm), age=num(c.age), pal=num(c.pal); if(!kg||!cm||!age||!pal) return null;
   const bmr=10*kg+6.25*cm-5*age+(c.sex==="d"?-161:5), tdee=bmr*pal, ph=PHASE_ADJ[phaseOf(pe.phase)];
-  const st=kcalStats(); const base=c.useMaint&&st.maint?st.maint:tdee;
+  const base=tdee;
   const kcal=Math.round(base*(1+ph.k)/10)*10, p=Math.round(kg*ph.p), g=Math.max(Math.round(kg*0.8),Math.round(kcal*0.2/9)), cc=Math.max(0,Math.round((kcal-p*4-g*9)/4));
-  return {bmr:Math.round(bmr),tdee:Math.round(tdee),maint:st.maint?Math.round(st.maint):null,kcal,p,c:cc,g};
+  return {bmr:Math.round(bmr),tdee:Math.round(tdee),maint:null,kcal,p,c:cc,g};
 }
 function renderPauta(){
   const el=$("#v-pauta");
@@ -371,7 +366,7 @@ function renderPauta(){
       <div class="btns"><button class="primary" id="pe-new">Nova pauta</button><button id="pe-from">Partir d'una altra pauta…</button></div></div>`;
     return;
   }
-  const t=pe.targets, r=calcTargets(), st=kcalStats();
+  const t=pe.targets, r=calcTargets();
   const sum=pe.meals.reduce((a,m)=>({kcal:a.kcal+(num(m.kcal)||0),p:a.p+(num(m.p)||0),c:a.c+(num(m.c)||0),g:a.g+(num(m.g)||0)}),{kcal:0,p:0,c:0,g:0});
   const tk=(num(t.p)||0)*4+(num(t.c)||0)*4+(num(t.g)||0)*9;
   el.innerHTML=`<div class="stack"><div class="vhead"><span class="lbl">${pe.editing?"Editant":"Pauta nova"}</span><h1>${esc(pe.title||"Pauta")}</h1></div>
@@ -386,7 +381,6 @@ function renderPauta(){
       <div class="row"><label class="f"><span class="lbl">Alçada (cm)</span><input data-pc="cm" inputmode="numeric" value="${esc(pe.calc.cm??"")}"></label>
         <label class="f"><span class="lbl">Pes (kg)</span><input data-pc="kg" inputmode="decimal" value="${esc(fin(pe.calc.kg))}"></label></div>
       <label class="f"><span class="lbl">Activitat (total del dia, entrenament inclòs)</span><select data-pc="pal">${[[1.4,"Sedentari + 3-4 entrenaments (1,4)"],[1.55,"Moderat · 7-10k passos + entrenament (1,55)"],[1.7,"Actiu · feina de peu o >10k passos (1,7)"],[1.85,"Molt actiu · feina física (1,85)"]].map(([v,l])=>`<option value="${v}" ${+pe.calc.pal===v?"selected":""}>${l}</option>`).join("")}</select></label>
-      ${st.maint?`<label class="chkl"><input type="checkbox" data-pc="useMaint" ${pe.calc.useMaint?"checked":""}> Partir del manteniment real (${fn(Math.round(st.maint/10)*10,0)} kcal, de les dades del registre)</label>`:""}
       ${r?`<div class="sub num">Metabolisme basal ${fn(r.bmr,0)} · despesa estimada ${fn(r.tdee,0)} kcal${r.maint?" · real "+fn(r.maint,0):""}</div>
         <div class="sub num"><b>Proposta ${esc(pe.phase.toLowerCase())}: ${fn(r.kcal,0)} kcal · P ${r.p} · HC ${r.c} · G ${r.g}</b></div>
         <button type="button" id="pe-apply">Aplicar la proposta</button>`:`<div class="sub">Omple sexe, edat, alçada, pes i activitat.</div>`}

@@ -4,7 +4,7 @@
    Depèn dels helpers globals de index.html i app.js (esc, fn, $, render, cur, toast, IS_COACH, IS_CLIENT). */
 
 const EVO_NAMES=["","START","ACTIVE","PROGRESS","ATHLETE","ELION ELITE"];
-const EVO_PARTS=[["train","Entrenament","🏋️"],["food","Alimentació","🍽️"],["body","Progrés físic","📈"],["consist","Constància","🔁"]];
+const EVO_PARTS=[["train","Entrenament","🏋️"],["body","Progrés físic","📈"],["consist","Constància","🔁"]];
 let EVO=null, EVO_for=null, EVO_busy=false, EVO_t=0, EVO_open=false, EVO_cel=null, EVO_cfg=null;
 
 const evoWho=()=>window.QStore&&(QStore.target||QStore.uid);
@@ -69,14 +69,13 @@ function evoCard(){
   const d=EVO;
   if(!d) return `<div class="card evo"><div class="evo-av">${evoSvg("m",1)}</div><div class="evo-txt"><span class="lbl">ELION Evolution</span><b>Calculant la teva evolució…</b></div></div>`;
   const c=d.current||{}, b=evoBar(d);
-  const kcal=c.kcal_target!=null?`${c.kcal_ok||0}/7 dies dins de les kcal`:`${c.kcal_days||0}/7 dies apuntats`;
   return `<button class="card evo" id="evo-open" type="button">
     ${evoAvatar(d)}
     <span class="evo-txt"><span class="lbl">ELION Evolution</span>
       <span class="evo-lv">Nivell ${d.level} · ${EVO_NAMES[d.level]}</span>
       <span class="evo-bar"><i style="width:${b.pct.toFixed(1)}%"></i></span>
       <span class="evo-sub">${esc(b.txt)}</span>
-      <span class="evo-kpi"><span>🏋️ ${c.sessions||0}/${c.planned||"–"} sessions</span><span>🍽️ ${esc(kcal)}</span></span>
+      <span class="evo-kpi"><span>🏋️ ${c.sessions||0}/${c.planned||"–"} sessions</span>${c.weight_chg_pct!=null?`<span>⚖️ ${c.weight_chg_pct>0?"+":""}${fn(c.weight_chg_pct,1)} % pes</span>`:""}</span>
       <span class="evo-foot"><span class="evo-sc">Setmana <b>${c.score!=null?c.score:"–"}</b>/100</span>${evoSpark(d.history,c.score)}</span>
     </span></button>`;
 }
@@ -123,10 +122,9 @@ function evoDetail(){
     return `<div class="evo-part"><span>${ic} ${t} <small>${w[k]!=null?w[k]+" %":""}</small></span><span class="evo-bar sm"><i style="width:${v==null?0:v}%"></i></span><b>${v==null?"sense dades":v}</b></div>`}).join("");
   const why=[];
   if(c.sessions!=null) why.push(`${c.sessions} de ${c.planned} sessions fetes aquesta setmana`);
-  if(c.kcal_target!=null) why.push(`${c.kcal_days||0} dies amb kcal apuntades, ${c.kcal_ok||0} dins de l'objectiu (${fn(c.kcal_target,0)} kcal)`);
   if(c.weight_chg_pct!=null) why.push(`pes mitjà ${c.weight_chg_pct>0?"+":""}${fn(c.weight_chg_pct,2)} % respecte a la setmana anterior`);
   if(c.strength_ok!=null&&c.sessions) why.push(`${c.strength_ok} % dels exercicis mantenen o milloren la força`);
-  const goal=nx?(nx.sessions_left?`Fes ${nx.sessions_left} ${nx.sessions_left===1?"sessió":"sessions"} més aquesta setmana i apunta les kcal cada dia.`:`Pla de la setmana complert: ara toca apuntar les kcal i pesar-te.`):"Has arribat al nivell màxim: mantén la constància.";
+  const goal=nx?(nx.sessions_left?`Fes ${nx.sessions_left} ${nx.sessions_left===1?"sessió":"sessions"} més aquesta setmana i pesa't cada matí.`:`Pla de la setmana complert: ara toca pesar-te cada matí.`):"Has arribat al nivell màxim: mantén la constància.";
   const vsel=evoMine()?`<div class="stack" style="gap:6px"><span class="lbl">Avatar</span><div class="chips">${[["auto","Segons el perfil"],["m","Masculí"],["f","Femení"]].map(([k,t])=>`<button data-evo-var="${k}" class="${(d.variant_pref||"auto")===k?"on":""}">${t}</button>`).join("")}</div></div>`:"";
   return `<div id="evo-ov" class="evo-ov"><div class="evo-bg" data-evo-close></div><div class="evo-box">
     <button class="plain evo-x" data-evo-close aria-label="Tancar">✕</button>
@@ -176,22 +174,21 @@ function evoConfigCard(){
   return `<details class="card stack"><summary class="lbl" style="cursor:pointer">ELION Evolution · criteris de l'avatar</summary>
     <div class="stack" style="margin-top:10px">
       <span class="sub" style="font-size:13px">Pes de cada variable a la puntuació setmanal (en %). Si un client no té dades d'una variable, el seu pes es reparteix entre les altres.</span>
-      <div class="row">${num("ec-train",w.train,"Entrenament")}${num("ec-food",w.food,"Alimentació")}</div>
-      <div class="row">${num("ec-body",w.body,"Progrés físic")}${num("ec-consist",w.consist,"Constància")}</div>
+      <div class="row">${num("ec-train",w.train,"Entrenament")}${num("ec-body",w.body,"Progrés físic")}</div>
+      <div class="row">${num("ec-consist",w.consist,"Constància")}${num("ec-good",p.good_week_pct,"Setmana complerta (% sessions)")}</div>
       <span class="sub" style="font-size:13px">Punts acumulats per pujar de nivell (cada setmana suma de 0 a 100).</span>
       <div class="row">${num("ec-t2",t[1],"ACTIVE")}${num("ec-t3",t[2],"PROGRESS")}</div>
       <div class="row">${num("ec-t4",t[3],"ATHLETE")}${num("ec-t5",t[4],"ELION ELITE")}</div>
-      <div class="row">${num("ec-tol",p.kcal_tol_pct,"Marge de kcal (±%)")}${num("ec-good",p.good_week_pct,"Setmana complerta (% sessions)")}</div>
       <button class="primary" id="ec-save" type="button">Desar criteris</button>
     </div></details>`;
 }
 async function evoSaveConfig(){
   const g=id=>Math.max(0,parseInt(($("#"+id)||{}).value,10)||0);
-  const weights={train:g("ec-train"),food:g("ec-food"),body:g("ec-body"),consist:g("ec-consist")};
+  const weights={train:g("ec-train"),food:0,body:g("ec-body"),consist:g("ec-consist")};
   const thresholds=[0,g("ec-t2"),g("ec-t3"),g("ec-t4"),g("ec-t5")];
-  if(!(weights.train+weights.food+weights.body+weights.consist)) return toast("Cal que alguna variable tingui pes");
+  if(!(weights.train+weights.body+weights.consist)) return toast("Cal que alguna variable tingui pes");
   if(thresholds.some((x,i)=>i&&x<=thresholds[i-1])) return toast("Els punts de cada nivell han de ser més alts que els de l'anterior");
-  const params={kcal_tol_pct:g("ec-tol")||10,good_week_pct:Math.min(100,g("ec-good")||75)};
+  const params={kcal_tol_pct:((EVO_cfg&&EVO_cfg.params)||{}).kcal_tol_pct||10,good_week_pct:Math.min(100,g("ec-good")||75)};
   const {error}=await QStore.sb.from("avatar_config").upsert({coach_id:QStore.uid,weights,thresholds,params,updated_at:new Date().toISOString()},{onConflict:"coach_id"});
   if(error) return toast("No s'ha pogut desar: "+error.message);
   EVO_cfg={weights,thresholds,params}; EVO_t=0; toast("Criteris desats");

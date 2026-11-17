@@ -48,20 +48,17 @@ function habitsCard(){
   if(window.QStore&&QStore.viewing) return "";
   const today=todayISO(), yest=addDays(today,-1);
   const bw=bwData(), bwToday=bw.some(x=>x.date===today);
-  const kc=(S.kcallog||[]), kcY=kc.some(x=>x.date===yest);
   const ws=weekStreak(), sesToday=S.sessions.some(s=>s.date===today);
-  const bwN=dayStreak(bw.map(x=>x.date)), kcN=dayStreak(kc.map(x=>x.date));
+  const bwN=dayStreak(bw.map(x=>x.date));
   const item=(ok,ico,t,sub,href)=>`<a class="hab ${ok?"ok":""}" href="${href}"><span class="hi">${ok?"✓":ico}</span><span class="ht">${t}</span><span class="hs">${sub}</span></a>`;
-  const best=Math.max(bwN,kcN);
   return `<div class="card stack habits">
     <div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><span class="lbl">Hàbits d'avui</span>
       ${ws.n?`<span class="streak">🔥 ${ws.n} ${ws.n===1?"setmana":"setmanes"} complint</span>`:`<span class="sub" style="font-size:13px">Setmana ${ws.thisWeek}/${ws.tgt}</span>`}</div>
     <div class="hgrid">
       ${item(bwToday,"⚖️","Pes",bwToday?"fet":"en dejú","#pes")}
-      ${item(kcY,"🍽️","Kcal d'ahir",kcY?"fet":"apunta-les","#nutricio")}
       ${item(sesToday,"🏋️","Setmana",`${ws.thisWeek}/${ws.tgt} sessions`,"#setmana")}
     </div>
-    ${best>=3?`<div class="sub" style="font-size:13px">${bwN>=3?`⚖️ <b>${bwN} dies</b> seguits pesant-te`:""}${bwN>=3&&kcN>=3?" · ":""}${kcN>=3?`🍽️ <b>${kcN} dies</b> seguits apuntant kcal`:""}. No trenquis la ratxa!</div>`:""}
+    ${bwN>=3?`<div class="sub" style="font-size:13px">⚖️ <b>${bwN} dies</b> seguits pesant-te. No trenquis la ratxa!</div>`:""}
   </div>`;
 }
 
@@ -201,7 +198,7 @@ document.head.insertAdjacentHTML("beforeend",`<style>
 .qact{display:flex;align-items:center;justify-content:space-between;gap:8px}
 .qact a{color:var(--accent);text-decoration:none;font-weight:600;font-size:14px}
 .habits .streak{font-family:var(--display);font-weight:700;font-size:17px;padding:4px 10px;border-radius:999px;background:color-mix(in srgb,#ff8a3d 18%,transparent);color:#ffb37a}
-.hgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.hgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
 .hab{display:flex;flex-direction:column;align-items:center;gap:3px;text-decoration:none;color:var(--fg);background:var(--raise);border:1px solid var(--line);border-radius:14px;padding:12px 6px;text-align:center}
 .hab .hi{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;background:var(--surface)}
 .hab.ok{border-color:color-mix(in srgb,var(--good) 55%,transparent);background:var(--good-soft)}

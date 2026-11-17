@@ -759,61 +759,27 @@ function eqSheet(){
    ${rows.map(r=>`<tr class="eqrow"><td class="${r.base?"b":""}">${esc(r.name)}</td><td class="r num ${r.base?"b":""}">${r.raw} g</td>${hasCk?`<td class="r num">${r.ck!=null?r.ck+" g":"–"}</td>`:""}</tr>`).join("")}
    </tbody></table></div><div class="btns"><button id="sh-close">Tancar</button></div>`;
 }
-function kcalStats(){
-  const logs=[...S.kcallog].filter(x=>x.date&&x.kcal).sort((a,b)=>a.date.localeCompare(b.date)), t=todayISO();
-  const w7=logs.filter(x=>x.date>addDays(t,-7)&&x.date<=t);
-  const avg7=w7.length?w7.reduce((a,b)=>a+b.kcal,0)/w7.length:null;
-  const from=addDays(t,-28), L=logs.filter(x=>x.date>from), B=bwData().filter(x=>x.date>from);
-  let maint=null;
-  if(L.length>=14&&B.length>=14){
-    const t0=dt(B[0].date).getTime()/864e5, xs=B.map(x=>dt(x.date).getTime()/864e5-t0), ys=B.map(x=>x.kg);
-    const mx=xs.reduce((a,b)=>a+b,0)/xs.length, my=ys.reduce((a,b)=>a+b,0)/ys.length;
-    const slope=xs.reduce((a,x,i)=>a+(x-mx)*(ys[i]-my),0)/xs.reduce((a,x)=>a+(x-mx)**2,0);
-    maint=L.reduce((a,b)=>a+b.kcal,0)/L.length-slope*7700;
-  }
-  return {avg7,n7:w7.length,maint,nL:L.length};
-}
 function renderNutricio(){
   const el=$("#v-nutricio"); const act=activePauta(), nxt=nextPauta(); const P=(nutShow==="next"&&nxt)?nxt:act;
   let h=`<div class="stack">${liveBanner()}<div class="vhead"><span class="lbl">${P?(P.from>todayISO()?(P===act&&!pautes().some(x=>x.from<=todayISO())?"La teva pauta · comença el ":"Propera pauta · des del "):"Pauta activa · des del ")+esc(fdate(P.from,{day:"numeric",month:"long",year:"numeric"})):"Alimentació"}</span><h1><em>Nutrició</em></h1></div>`;
-  if(!P){el.innerHTML=h+`<div class="empty"><b>Encara no hi ha cap pauta</b>Quan el teu entrenador hi carregui la pauta, aquí veuràs els àpats, les equivalències i el registre de kcal.</div></div>`;return}
-  const tg=P.targets||{}, today=todayISO(), lg=S.kcallog.find(x=>x.date===today), st=kcalStats();
+  if(!P){el.innerHTML=h+`<div class="empty"><b>Encara no hi ha cap pauta</b>Quan el teu entrenador hi carregui la pauta, aquí veuràs els àpats i les equivalències de cada aliment.</div></div>`;return}
+  const tg=P.targets||{};
   h+=`<div class="ph"><span class="pill">${esc(P.phase||"")}</span>${P.provisional?'<span class="pill w">Provisional</span>':""}<span class="lbl">${esc(P.source||"")}</span></div>`;
   if(nxt&&act&&nxt!==act) h+=`<button class="ghost" id="n-toggle">${P===act?"Veure la propera pauta: "+esc(nxt.title||"")+" ("+esc(fdate(nxt.from,{day:"numeric",month:"short"}))+")":"‹ Tornar a la pauta activa"}</button>`;
   h+=`<div class="mac"><div class="tile k"><div class="lbl">Kcal</div><div class="v">${fn(tg.kcal,0)}</div></div><div class="tile p"><div class="lbl">Proteïna</div><div class="v">${fn(tg.p,0)}<small> g</small></div></div>
     <div class="tile c"><div class="lbl">Hidrats</div><div class="v">${fn(tg.c,0)}<small> g</small></div></div><div class="tile g"><div class="lbl">Greixos</div><div class="v">${fn(tg.g,0)}<small> g</small></div></div></div>`;
-  if(P===act) h+=`<div class="card stack"><span class="lbl">Kcal d'avui · també l'àpat lliure</span>
-    <div class="row" style="align-items:center"><div class="step" style="flex:2 1 180px"><button data-kc="-50" aria-label="Menys">−</button><input id="n-kcal" inputmode="numeric" value="${lg?lg.kcal:""}" placeholder="${fn(tg.kcal,0).replace(/\s/g,"")}"><button data-kc="50" aria-label="Més">+</button></div>
-    <button class="primary" id="n-save" style="flex:1 1 100px;height:50px">${lg?"Actualitzar":"Desar"}</button></div>
-    <label class="chkl"><input type="checkbox" id="n-free" ${lg&&lg.free?"checked":""}> Avui he fet l'àpat lliure</label>
-    <div class="sub num">Mitjana 7 dies: <b>${st.avg7?fn(st.avg7,0)+" kcal":"–"}</b> · ${st.n7}/7 dies registrats${st.avg7&&tg.kcal?` · ${st.avg7-tg.kcal>0?"+":""}${fn(st.avg7-tg.kcal,0)} vs pauta`:""}</div>
-    <div class="sub num">Manteniment estimat: <b>${st.maint?fn(Math.round(st.maint/10)*10,0)+" kcal":"calen 14 dies de registre ("+st.nL+"/14)"}</b></div></div>`;
   (P.meals||[]).forEach(m=>{
     h+=`<div class="card meal"><div class="mh"><h3>${esc(m.name)}${m.note?` <span class="lbl" style="font-family:var(--body)">· ${esc(m.note)}</span>`:""}</h3><span class="mm">${fn(m.kcal,0)} kcal · P ${fn(m.p,0)} · HC ${fn(m.c,0)} · G ${fn(m.g,0)}</span></div>
      ${(m.items||[]).map((it,k)=>{const can=!!eqRowsFor(it);return `<button class="food ${can?"":"noeq"}" ${can?`data-eq="${esc(m.name)}|${k}"`:""}><span style="min-width:0"><b>${esc(it.name)}</b>${it.hint?`<div class="sub" style="font-size:13px">${esc(it.hint)}</div>`:""}</span><span class="fg">${fn(it.g,0)}<small style="font-size:14px;color:var(--muted)"> g</small></span><span class="ar">${can?"›":""}</span></button>`}).join("")}</div>`});
   h+=`<p class="sub" style="font-size:13px">Toca un aliment per veure'n les equivalències. Pesos en cru.</p>`;
   if(P.supplements&&P.supplements.length) h+=`<details class="card"><summary>Suplements</summary><div class="tw"><table><tbody>${P.supplements.map(x=>`<tr><td><b>${esc(x.name)}</b></td><td>${esc(x.txt)}</td></tr>`).join("")}</tbody></table></div></details>`;
   if(P.tips&&P.tips.length) h+=`<details class="card"><summary>Consells generals</summary><ul class="tips">${P.tips.map(x=>`<li>${esc(x)}</li>`).join("")}</ul></details>`;
-  if(P===act){
-    const bw={}; bwData().forEach(x=>bw[x.date]=x.kg);
-    const days=Array.from({length:14},(_,i)=>addDays(today,-i));
-    h+=`<div class="card tw" style="padding:6px 10px"><table><thead><tr><th>Dia</th><th class="r">Kcal</th><th class="r">Lliure</th><th class="r">Pes</th></tr></thead><tbody>
-      ${days.map(d=>{const x=S.kcallog.find(y=>y.date===d);return `<tr><td>${esc(fdate(d))}</td><td class="r num">${x&&x.kcal?fn(x.kcal,0):"–"}</td><td class="r">${x&&x.free?"✓":""}</td><td class="r num">${bw[d]?fn(bw[d],2):"–"}</td></tr>`}).join("")}</tbody></table></div>`;
-  }
   el.innerHTML=h+`</div>`;
 }
 $("#v-nutricio").addEventListener("click",async e=>{
   const b=e.target.closest("button"); if(!b) return;
   if(b.id==="n-toggle"){nutShow=nutShow==="next"?null:"next";renderNutricio();window.scrollTo(0,0);return}
-  if(b.dataset.kc){const i=$("#n-kcal");const v=(num(i.value)??num(i.placeholder)??0)+ +b.dataset.kc;i.value=Math.max(0,Math.round(v));return}
   if(b.dataset.eq){const [mn,k]=b.dataset.eq.split("|");const P=(nutShow==="next"&&nextPauta())||activePauta();const m=(P.meals||[]).find(x=>x.name===mn);if(!m)return;eqItem=m.items[+k];openSheet("eq");return}
-  if(b.id==="n-save"){
-    const kcal=num($("#n-kcal").value); if(!kcal||kcal<500||kcal>8000){toast("Escriu les kcal del dia");return}
-    if(!db){toast("Sense connexió a la base de dades");return}
-    const d=todayISO(); b.disabled=true;
-    try{await db.collection("kcallog").doc(d).set({date:d,kcal:Math.round(kcal),free:$("#n-free").checked,updatedAt:new Date().toISOString()});toast("Kcal desades");b.blur();render()}
-    catch(err){b.disabled=false;toast("No s'ha pogut desar: "+err.message)}
-  }
 });
 
 /* ---------- INFORMES ---------- */
@@ -854,7 +820,7 @@ if(draft.startedAt) wake();
 route(); renderPend();
 /* ---------- GRUPS DE PESTANYES: una pestanya a la barra i un selector a dalt de la vista ---------- */
 function GROUPS(){return (typeof CV==="function"&&CV())?[["rutines","progres"],["pauta","nutricio"],["setmana","any"]]:[["avui","progres"],["setmana","any"]]}
-const SUBLBL={avui:"Entrenament",rutines:"Rutines",progres:"Progrés",setmana:"Setmana",any:"Any",pauta:"Pauta",nutricio:"Kcal"};
+const SUBLBL={avui:"Entrenament",rutines:"Rutines",progres:"Progrés",setmana:"Setmana",any:"Any",pauta:"Pauta",nutricio:"Menjar"};
 function groupOf(v){return GROUPS().find(g=>g.includes(v))||null}
 function subNav(v){const g=groupOf(v); if(!g) return ""; if(v==="avui"&&(inWorkout()||lastSaved)) return "";
   return `<nav class="subnav" aria-label="Apartats">${g.map(x=>`<a href="#${x}" class="${x===v?"on":""}"${x===v?' aria-current="page"':""}>${SUBLBL[x]}</a>`).join("")}</nav>`}
