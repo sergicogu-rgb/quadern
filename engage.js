@@ -101,15 +101,22 @@ document.addEventListener("click",async e=>{
 });
 
 /* ---------- resum divertit en acabar ---------- */
-const THINGS=[["una balena orca",5500,"🐋"],["un elefant africà",6000,"🐘"],["un rinoceront",2300,"🦏"],["un hipopòtam",1500,"🦛"],["una girafa",1200,"🦒"],["un bisó",900,"🦬"],["un ós grizzly",600,"🐻"],["un cavall",500,"🐎"],["un ós polar",450,"🐻‍❄️"],["un lleó",190,"🦁"],["un goril·la",160,"🦍"],["un cangur",85,"🦘"]];
+/* Escala de volum (kg aproximats): el client "supera" l'esglaó més alt que iguala o passa, i veu el següent com a objectiu. */
+const THINGS=[["un cangur",85,"🦘"],["un escúter",120,"🛵"],["un lleó",190,"🦁"],["un piano de paret",250,"🎹"],["una moto gran",350,"🏍️"],
+ ["un ós polar",450,"🐻‍❄️"],["un cavall",550,"🐎"],["una vaca",700,"🐄"],["un bisó",900,"🦬"],["un cotxe petit",1100,"🚗"],["una girafa",1300,"🦒"],
+ ["un hipopòtam",1500,"🦛"],["un cotxe familiar",1800,"🚙"],["un rinoceront",2300,"🦏"],["una furgoneta",2700,"🚐"],["una ambulància",3500,"🚑"],
+ ["un elefant asiàtic",4000,"🐘"],["un helicòpter",5000,"🚁"],["un elefant africà",6000,"🐘"],["un tiranosaure",7500,"🦖"],["un tractor gran",9000,"🚜"],
+ ["un autobús",12000,"🚌"],["un tauró balena",16000,"🦈"],["un camió de bombers",19000,"🚒"],["un vagó de metro",28000,"🚇"],["una balena geperuda",33000,"🐋"],
+ ["un tràiler carregat",40000,"🚛"],["un catxalot",55000,"🐳"],["una locomotora",80000,"🚂"],["una balena blava",150000,"🐳"],["un avió jumbo",400000,"✈️"]];
 function funFact(kg){
-  if(!kg) return null; let best=null;
-  THINGS.forEach(([t,w,e])=>{const r=kg/w; if(r>=1.5&&r<=12){const sc=Math.abs(Math.log(r/3)); if(!best||sc<best.sc) best={t,r,sc,e}}});
-  if(!best){const [t,w,e]=THINGS.slice().sort((a,b)=>b[1]-a[1]).find(([_,w])=>kg>=w)||THINGS[THINGS.length-1]; best={t,r:kg/w,e}}
-  const n=best.r>=10?Math.round(best.r):Math.round(best.r*10)/10;
-  return {n,t:best.t,e:best.e,txt:`Com aixecar ${fn(n,1)} × ${best.t}`};
+  if(!kg) return null;
+  let k=-1; THINGS.forEach(([,w],i)=>{if(kg>=w) k=i});
+  const nx=THINGS[k+1]||null, next=nx?{t:nx[0],w:nx[1],e:nx[2],falta:Math.max(1,Math.round((nx[1]-kg)/10)*10)}:null;
+  if(k<0) return {t:null,e:nx[2],w:0,next,txt:`Et falten ${fn(next.falta,0)} kg per a ${nx[0]}`,goal:`Primer objectiu: ${nx[0]} (≈${fn(nx[1],0)} kg)`};
+  const [t,w,e]=THINGS[k];
+  return {t,w,e,next,txt:`Més que ${t} (≈${fn(w,0)} kg)`,goal:next?`Et falten ${fn(next.falta,0)} kg per a ${next.t} ${next.e}`:"Al cim de l'escala! 🏆"};
 }
-function funLine(kg){const f=funFact(kg); if(!f) return ""; return `<div class="card fun"><span class="lbl">Avui has mogut</span><div class="big" style="font-size:44px;line-height:1">${fn(Math.round(kg),0)} kg</div><div class="funrow"><span class="funemo">${f.e}</span><span class="sub">${esc(f.txt)}</span></div></div>`}
+function funLine(kg){const f=funFact(kg); if(!f) return ""; return `<div class="card fun"><span class="lbl">Avui has mogut</span><div class="big" style="font-size:44px;line-height:1">${fn(Math.round(kg),0)} kg</div><div class="funrow"><span class="funemo">${f.e}</span><span class="sub">${esc(f.txt)}<br><small>${esc(f.goal)}</small></span></div></div>`}
 function sessionPRs(s){let n=0; (s.items||[]).forEach(it=>{const best=bestE1(it.sets||[]); const hist=S.sessions.filter(o=>o.id!==s.id&&o.date<=s.date).flatMap(o=>(o.items||[]).filter(i=>i.exId===it.exId).flatMap(i=>i.sets||[])); const pb=hist.length?bestE1(hist):0; if(pb&&best>pb) n++}); return n}
 
 /* ---------- imatges per compartir: story amb foto, sticker transparent o post ---------- */
@@ -117,7 +124,6 @@ const FD='"Inter","Inter Display",system-ui,sans-serif';
 async function loadFonts(){try{ if(document.fonts&&document.fonts.load) await Promise.all([document.fonts.load(`800 120px Inter`),document.fonts.load(`italic 800 120px Inter`),document.fonts.load(`600 40px Inter`)]) }catch(e){}}
 // Targeta de sessió (920 × 1040), centrada, estil "sessió completada"
 const CARD_H=1130;
-function timesWord(r){const k=Math.round(r); if(Math.abs(r-k)<.15&&k>=1&&k<=10) return ["Una vegada","Dues vegades","Tres vegades","Quatre vegades","Cinc vegades","Sis vegades","Set vegades","Vuit vegades","Nou vegades","Deu vegades"][k-1]; return fn(Math.round(r*10)/10,1)+" vegades"}
 function drawCard(x,s,X,Y,glass){
   const W=920, cx=X+W/2, LS=v=>{try{x.letterSpacing=v}catch(e){}};
   const CY="#C8FF2E", acc=x.createLinearGradient(X,0,X+W,0); acc.addColorStop(0,"#C8FF2E"); acc.addColorStop(1,"#22E3D2");
@@ -158,8 +164,8 @@ function drawCard(x,s,X,Y,glass){
     LS("0px"); x.fillStyle="#fff"; x.font=`84px "Apple Color Emoji","Noto Color Emoji","Segoe UI Emoji",sans-serif`; x.fillText(f.e,cx,sy+104);
     LS("-2px"); x.font=`800 50px ${FD}`; x.fillText(`${fn(Math.round(kg),0)} kg!`,cx,sy+174);
     LS("0px"); x.fillStyle="rgba(255,255,255,.75)"; x.font=`500 28px ${FD}`;
-    const w=THINGS.find(t=>t[0]===f.t); x.fillText(`Com aixecar ${f.t} (≈${fn(w?w[1]:0,0)} kg).`,cx,sy+222);
-    x.fillStyle=CY; x.font=`700 28px ${FD}`; x.fillText(`${timesWord(kg/(w?w[1]:1))}.`,cx,sy+262) }
+    x.fillText(f.txt+".",cx,sy+222);
+    x.fillStyle=CY; x.font=`700 28px ${FD}`; x.fillText(f.goal,cx,sy+262) }
   // peu
   LS("0px"); x.textAlign="left"; x.font=`700 28px ${FD}`; const fx=cx-x.measureText("NEXFORM").width/2;
   x.fillStyle=CY; x.font=`700 28px ${FD}`; x.fillText("NEXFORM",fx,Y+CARD_H-40);
