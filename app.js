@@ -280,7 +280,7 @@ function renderWorkout(){
   const why=!pp?"":pp.src==="coach"?`<b>Pla de l'entrenador.</b> ${esc(pp.note||"")}`:pp.kind==="up"?`<b>↑ Puja +${fn(c.inc,2)} kg.</b> Vas arribar al màxim del rang a totes les sèries.`:pp.kind==="hold"?`<b>Mantén la càrrega.</b> Avui ja en pugen altres.`:`<b>Mateixa càrrega.</b> Busca +1 rep a cada sèrie fins al màxim del rang.`;
   let h=`<div class="wo stack">
    <div class="seg">${draft.items.map((x,k)=>`<button data-act="go" data-k="${k}" class="${k===i?"cur":exState(x)}" aria-label="Exercici ${k+1}"></button>`).join("")}</div>
-   ${ex.photo?`<button class="photo has" data-act="photo" aria-label="Foto de ${esc(ex.name)}"><img src="${esc(ex.photo)}" alt=""></button>`:`<button class="photo small" data-act="photo">＋ Afegeix una foto de la màquina</button>`}
+   ${ex.photo?`<button class="photo has" data-act="photo" aria-label="Foto de ${esc(ex.name)}"><img src="${esc(ex.photo)}" alt=""></button>`:stockPhoto(ex)||`<button class="photo small" data-act="photo">＋ Afegeix una foto de la màquina</button>`}
    <div class="exhead"><div><span class="lbl">Exercici ${i+1} de ${n}</span><h2>${esc(ex.name)}</h2><span class="chip">${esc(ex.muscle||"")}</span></div><button class="plain" data-act="opts" aria-label="Opcions de l'exercici" style="font-size:22px;line-height:1">⋯</button></div>
    ${why?`<div class="why ${d==="up"?"upg":d==="down"?"dn":""}">${why}</div>`:""}
    <div class="last">${prev?`Última vegada · ${esc(fdate(prev.date,{day:"numeric",month:"short"}))}: <b class="num">${prev.sets.map(setStr).join(" · ")}</b>`:(pp?"Primera vegada que el registres.":`<b>Primera vegada.</b> Tria un pes amb què puguis fer ${c.rng(0).min}–${c.rng(0).max} repeticions deixant-ne ${rirTarget()||"2-3"} a la recambra. La propera vegada l'app et proposarà la càrrega.`)}</div>
@@ -607,7 +607,10 @@ function renderProgres(){
     return `<button class="prow" data-ex="${esc(id)}">${thumb(ex)}<span style="min-width:0"><span class="nm">${esc(ex.name)}</span><div class="ls num">${l.sets.map(x=>fn(x.kg,2)+"×"+x.reps).join(" · ")}</div></span>${spark(H.map(x=>x.e1))}<span class="pc ${ch>0.05?"up":ch<-0.05?"down":""}">${ch>0?"+":""}${fn(ch,1)}%</span></button>`}).join("")}</div></div>` });
   el.innerHTML=h+`</div>`;
 }
-const thumb=ex=>`<span class="pth" aria-hidden="true">${ex.photo?`<img src="${esc(ex.photo)}" alt="" loading="lazy">`:esc((ex.name||"?").trim().charAt(0).toUpperCase())}</span>`;
+const thumbSrc=ex=>ex.photo||((window.exStock&&exStock(ex))||{}).a||"";
+const thumb=ex=>{const s=thumbSrc(ex); return `<span class="pth" aria-hidden="true">${s?`<img src="${esc(s)}" alt="" loading="lazy">`:esc((ex.name||"?").trim().charAt(0).toUpperCase())}</span>`};
+/* Foto orientativa (banc lliure): inici i final del moviment. Si el client hi posa la seva foto, mana la seva. */
+function stockPhoto(ex){const s=window.exStock&&exStock(ex); if(!s) return ""; return `<figure class="stockph"><div class="sp2"><img src="${s.a}" alt="Posició inicial: ${esc(ex.name)}" loading="lazy"><img src="${s.b}" alt="Posició final: ${esc(ex.name)}" loading="lazy"></div><figcaption>${s.approx?"Foto orientativa d'un exercici semblant":"Foto orientativa"} · inici i final · <button type="button" class="linkb" data-act="photo">posa-hi la teva</button></figcaption></figure>`}
 function renderProgDetail(el){
   const ex=exById(progEx)||{name:"Exercici"}; const H=exHistory(progEx); const first=H[0], last=H[H.length-1], best=Math.max(...H.map(x=>x.e1)); const ch=first.e1?((last.e1-first.e1)/first.e1*100):0;
   el.innerHTML=`<div class="stack"><button class="plain" id="p-back" style="align-self:flex-start;padding-left:0">‹ Tots els exercicis</button>
