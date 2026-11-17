@@ -62,6 +62,44 @@ function habitsCard(){
   </div>`;
 }
 
+/* ---------- check-in setmanal (diumenge; si no s'ha fet, també dilluns per a la setmana passada) ---------- */
+const CI_Q=[["energy","⚡","Energia","Sense forces","A tope"],["sleep","😴","Son","Molt malament","Molt bé"],["hunger","🍽️","Gana","Cap","Molta"],["stress","🧠","Estrès","Gens","Molt"]];
+let ciSel={};
+function checkinWeek(){
+  const t=todayISO(), wd=(dt(t).getDay()+6)%7;
+  if(wd===6) return weekStart(t);
+  if(wd===0) return addDays(weekStart(t),-7);
+  return null;
+}
+function checkinOf(ws){return (S.checkins||[]).find(c=>c.id===ws)}
+function checkinCard(){
+  if(window.QStore&&QStore.viewing) return "";
+  const ws=checkinWeek(); if(!ws||checkinOf(ws)) return "";
+  const mon=ws!==weekStart(todayISO());
+  return `<div class="card stack checkin" id="ci-card"><div><span class="lbl">Check-in setmanal${mon?" · setmana passada":""}</span>
+    <h3 style="margin:2px 0 0">Com ha anat la setmana?</h3><p class="sub" style="margin:4px 0 0;font-size:13px">30 segons. Ho veurà el teu entrenador per ajustar la setmana vinent.</p></div>
+    ${CI_Q.map(([k,ico,t,lo,hi])=>`<div class="ciq"><div class="ciq-h"><b>${ico} ${t}</b><small>1 ${lo} · 5 ${hi}</small></div><div class="ci-sc" role="group" aria-label="${t}">${[1,2,3,4,5].map(n=>`<button type="button" data-ci="${k}" data-v="${n}" class="${ciSel[k]===n?"on":""}" aria-pressed="${ciSel[k]===n}">${n}</button>`).join("")}</div></div>`).join("")}
+    <textarea id="ci-txt" rows="2" placeholder="Algun comentari? (opcional)">${esc(ciSel.comment||"")}</textarea>
+    <button class="primary" id="ci-save" ${CI_Q.every(([k])=>ciSel[k])?"":"disabled"}>Enviar check-in</button></div>`;
+}
+function checkinView(c){
+  if(!c) return "";
+  const v=k=>c[k]!=null?c[k]:"–";
+  return `<div class="ci-view"><span class="lbl">Check-in del client</span><div class="ci-row">${CI_Q.map(([k,ico,t])=>`<span>${ico} ${t} <b>${v(k)}</b>/5</span>`).join("")}</div>${c.comment?`<p class="sub" style="margin:4px 0 0">«${esc(c.comment)}»</p>`:""}</div>`;
+}
+document.addEventListener("click",async e=>{
+  const b=e.target.closest("#ci-card button"); if(!b) return;
+  const card=$("#ci-card"), tx=$("#ci-txt"); if(tx) ciSel.comment=tx.value;
+  if(b.dataset.ci){ ciSel[b.dataset.ci]=+b.dataset.v; card.outerHTML=checkinCard(); return }
+  if(b.id==="ci-save"){
+    const ws=checkinWeek(); if(!ws||!CI_Q.every(([k])=>ciSel[k])) return;
+    const d={week:ws,date:todayISO(),comment:(ciSel.comment||"").trim().slice(0,500),updatedAt:new Date().toISOString()};
+    CI_Q.forEach(([k])=>d[k]=ciSel[k]);
+    queueWrite("checkins",ws,d); ciSel={}; render(); await flushPend();
+    toast(pend.some(w=>w.col==="checkins"&&w.id===ws)?"Check-in desat al mòbil · es pujarà quan tinguis connexió":"Check-in enviat. Gràcies!");
+  }
+});
+
 /* ---------- resum divertit en acabar ---------- */
 const THINGS=[["una balena orca",5500,"🐋"],["un elefant africà",6000,"🐘"],["un rinoceront",2300,"🦏"],["un hipopòtam",1500,"🦛"],["una girafa",1200,"🦒"],["un bisó",900,"🦬"],["un ós grizzly",600,"🐻"],["un cavall",500,"🐎"],["un ós polar",450,"🐻‍❄️"],["un lleó",190,"🦁"],["un goril·la",160,"🦍"],["un cangur",85,"🦘"]];
 function funFact(kg){
@@ -212,4 +250,11 @@ document.head.insertAdjacentHTML("beforeend",`<style>
 .shopt span{font-size:13px;color:var(--muted);font-weight:500}
 .funrow{display:flex;align-items:center;gap:10px;justify-content:center}.funemo{font-size:44px;line-height:1}
 .fun .big{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+.checkin h3{font-size:20px}
+.ciq{display:flex;flex-direction:column;gap:6px}.ciq-h{display:flex;justify-content:space-between;align-items:baseline;gap:8px}.ciq-h small{font-size:12px;color:var(--muted)}
+.ci-sc{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px}
+.ci-sc button{height:42px;padding:0;font-weight:700;border-radius:12px}
+.ci-sc button.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+#ci-txt{width:100%;box-sizing:border-box;resize:vertical;font:inherit}
+.ci-view{border-top:1px solid var(--line);padding-top:10px}.ci-row{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:4px;font-size:14px}
 </style>`);

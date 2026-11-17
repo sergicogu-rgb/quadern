@@ -179,6 +179,7 @@ function autoReportCard(){
       <div class="tile"><div class="lbl">Pes mitjà</div><div class="v">${r.bwA!=null?fn(r.bwA,1):"–"}<small>${r.dPct!=null?" · "+(r.dPct>0?"+":"")+fn(r.dPct,1)+" %":""}</small></div></div>
       <div class="tile"><div class="lbl">Dies de pes</div><div class="v">${r.wBn}<small> / 7</small></div></div></div>
     <ul class="tips">${r.flags.map(f=>`<li>${esc(f)}</li>`).join("")}</ul>
+    ${typeof checkinView==="function"?checkinView(checkinOf(ws)):""}
     ${muscles.length?`<details><summary class="lbl" style="cursor:pointer">Sèries efectives per grup muscular</summary><div class="tw"><table><tbody>${muscles.map(([m,n])=>`<tr><td>${esc(m)}</td><td class="r num">${n}</td></tr>`).join("")}</tbody></table></div><p class="sub" style="font-size:12px">Referència per a hipertròfia: uns 10-20 sèries setmanals per grup, repartides en 2 dies o més.</p></details>`:""}
     ${r.prs.length?`<details><summary class="lbl" style="cursor:pointer">Rècords (${r.prs.length})</summary><div class="tw"><table><tbody>${r.prs.map(p=>`<tr><td>${esc(p.name)}</td><td class="r num">${p.sets.map(x=>fn(x.kg,2)+"×"+x.reps).join(" · ")}</td></tr>`).join("")}</tbody></table></div></details>`:""}
   </article>`;

@@ -23,8 +23,8 @@ const effective=s=>s.rir==null||s.rir<=4;
 const splitName=n=>{const p=String(n||"").split(" · ");return p.length>1?{tag:p[0],title:p.slice(1).join(" · ")}:{tag:"",title:n||"Sessió"}};
 
 let db=null, cur="avui", chart=null, wchart=null, dirty=false, lastSaved=null, confirmDel=null, weekCursor=weekStart(todayISO()), sheetKind=null, progEx=null, showAll=false;
-const S={exercises:[],sessions:[],templates:[],reports:[],bodyweight:[],targets:[],nutrition:[],kcallog:[],intake:[],programs:[]};
-const ready={exercises:false,sessions:false,templates:false,reports:false,bodyweight:false,targets:false,nutrition:false,kcallog:false,intake:false,programs:false};
+const S={exercises:[],sessions:[],templates:[],reports:[],bodyweight:[],targets:[],nutrition:[],kcallog:[],intake:[],programs:[],checkins:[]};
+const ready={exercises:false,sessions:false,templates:false,reports:false,bodyweight:false,targets:false,nutrition:false,kcallog:false,intake:false,programs:false,checkins:false};
 const newDraft=()=>({id:null,date:todayISO(),templateId:"",name:"",items:[],notes:"",cur:0});
 let draft=LS.get("draft",null)||newDraft();
 /* Esborrany de la sessió: es desa al mòbil i també al núvol (drafts/current) perquè no es perdi si es tanca l'app */
@@ -238,7 +238,7 @@ function renderAvui(){
       <button class="go" id="h-start">▶ Començar</button></div>`;
   }
   if(tpls.length>1&&!rest) h+=`<div><span class="lbl">Canviar rutina</span><div class="chips" style="margin-top:8px">${tpls.map(t=>`<button data-tpl="${esc(t.id)}" class="${t.id===draft.templateId?"on":""}">${esc(splitName(t.name).tag||t.name)}</button>`).join("")}</div></div>`;
-  h+=weightQuick()+(typeof habitsCard==="function"?habitsCard():"")+miniWeek()+`</div>`;
+  h+=(typeof checkinCard==="function"?checkinCard():"")+weightQuick()+(typeof habitsCard==="function"?habitsCard():"")+miniWeek()+`</div>`;
   el.innerHTML=h;
 }
 function weightQuick(){
@@ -840,7 +840,7 @@ if(window.QStore) QStore.on("_view",()=>{ lastSaved=null; progEx=null; nutShow=n
       if(sheetKind) return; render();},
     err=>{clearTimeout(timer);setStatus("No s'han pogut carregar les dades ("+col+"): "+err.message)});};
   restoreDraft(); flushPend();
-  sub("exercises"); sub("sessions",["date","desc"]); sub("templates"); sub("reports",["week","desc"]); sub("bodyweight",["date","desc"]); sub("targets"); sub("nutrition"); sub("kcallog",["date","desc"]); sub("intake"); sub("programs");
+  sub("exercises"); sub("sessions",["date","desc"]); sub("templates"); sub("reports",["week","desc"]); sub("bodyweight",["date","desc"]); sub("targets"); sub("nutrition"); sub("kcallog",["date","desc"]); sub("intake"); sub("programs"); sub("checkins");
 })();
 
 /* service worker */
