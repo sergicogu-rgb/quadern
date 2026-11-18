@@ -1,6 +1,6 @@
 /* NEXFORM · lògica de l'app (abans dins index.html; separat el 2026-11-10 perquè la CSP no hagi de permetre scripts integrats) */
 const MUSCLES=["Pit","Esquena","Espatlles","Bíceps","Tríceps","Quàdriceps","Isquiotibials","Glutis","Bessons","Abdominals","Avantbraç","Altres"];
-const VIEWS=["avui","pes","progres","setmana","any","nutricio","informes","clients","resum","rutines","pauta","fitxa"];
+const VIEWS=["avui","pes","progres","setmana","any","nutricio","informes","clients","resum","rutines","pauta","fitxa","cos","guia"];
 const ALIAS={registre:"avui",historial:"setmana"};
 const $=s=>document.querySelector(s);
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -23,8 +23,8 @@ const effective=s=>s.rir==null||s.rir<=4;
 const splitName=n=>{const p=String(n||"").split(" · ");return p.length>1?{tag:p[0],title:p.slice(1).join(" · ")}:{tag:"",title:n||"Sessió"}};
 
 let db=null, cur="avui", chart=null, wchart=null, dirty=false, lastSaved=null, confirmDel=null, weekCursor=weekStart(todayISO()), sheetKind=null, progEx=null, showAll=false;
-const S={exercises:[],sessions:[],templates:[],reports:[],bodyweight:[],targets:[],nutrition:[],kcallog:[],intake:[],programs:[],checkins:[]};
-const ready={exercises:false,sessions:false,templates:false,reports:false,bodyweight:false,targets:false,nutrition:false,kcallog:false,intake:false,programs:false,checkins:false};
+const S={exercises:[],sessions:[],templates:[],reports:[],bodyweight:[],targets:[],nutrition:[],kcallog:[],intake:[],programs:[],checkins:[],body:[]};
+const ready={exercises:false,sessions:false,templates:false,reports:false,bodyweight:false,targets:false,nutrition:false,kcallog:false,intake:false,programs:false,checkins:false,body:false};
 const newDraft=()=>({id:null,date:todayISO(),templateId:"",name:"",items:[],notes:"",cur:0});
 let draft=LS.get("draft",null)||newDraft();
 /* Esborrany de la sessió: es desa al mòbil i també al núvol (drafts/current) perquè no es perdi si es tanca l'app */
@@ -147,7 +147,7 @@ function render(){
   const wo=cur==="avui"&&inWorkout()&&!lastSaved;
   const firstIntake=cur==="fitxa"&&typeof intakeDoc==="function"&&IS_CLIENT()&&!intakeDoc();
   $("#tabs").hidden=wo||firstIntake; $("#wobar").hidden=!wo;
-  ({avui:renderAvui,pes:renderPes,progres:renderProgres,setmana:renderSetmana,any:renderAny,nutricio:renderNutricio,informes:renderInformes,clients:renderClients,resum:renderResum,rutines:renderRutines,pauta:renderPauta,fitxa:renderFitxa})[cur]();
+  ({avui:renderAvui,pes:renderPes,progres:renderProgres,setmana:renderSetmana,any:renderAny,nutricio:renderNutricio,informes:renderInformes,clients:renderClients,resum:renderResum,rutines:renderRutines,pauta:renderPauta,fitxa:renderFitxa,cos:renderCos,guia:renderGuia})[cur]();
   tick();
 }
 document.querySelector("main").addEventListener("focusout",()=>setTimeout(()=>{ if(dirty&&!$("#v-"+cur).contains(document.activeElement)) render(); },0));
@@ -238,7 +238,7 @@ function renderAvui(){
       <button class="go" id="h-start">▶ Començar</button></div>`;
   }
   if(tpls.length>1&&!rest) h+=`<div><span class="lbl">Canviar rutina</span><div class="chips" style="margin-top:8px">${tpls.map(t=>`<button data-tpl="${esc(t.id)}" class="${t.id===draft.templateId?"on":""}">${esc(splitName(t.name).tag||t.name)}</button>`).join("")}</div></div>`;
-  h+=(typeof checkinCard==="function"?checkinCard():"")+weightQuick()+(typeof habitsCard==="function"?habitsCard():"")+miniWeek()+`</div>`;
+  h+=(typeof guideCard==="function"?guideCard():"")+(typeof checkinCard==="function"?checkinCard():"")+weightQuick()+(typeof habitsCard==="function"?habitsCard():"")+miniWeek()+`</div>`;
   el.innerHTML=h;
 }
 function weightQuick(){
@@ -803,7 +803,7 @@ function renderInformes(){
   const el=$("#v-informes"); const list=[...S.reports].sort((a,b)=>(b.week||"").localeCompare(a.week||""));
   el.innerHTML=`<div class="stack">${liveBanner()}<div class="vhead"><span class="lbl">Setmanals</span><h1><em>Informes</em></h1></div>${autoReportCard()}${
     list.length?list.map(r=>`<article class="card report"><span class="lbl">${r.from==="ia"?`<span class="pill">🤖 ${esc(((window.QStore||{}).AI||{name:"Q"}).name)} · IA · revisat pel teu entrenador</span> `:""}Setmana del ${esc(r.week?fdate(r.week,{day:"numeric",month:"long"}):"–")}</span><h3 style="margin:4px 0 6px">${esc(r.title||"Informe setmanal")}</h3>${md(r.text||"")}</article>`).join("")
-    :""}${typeof welcomeReport==="function"?welcomeReport():""}</div>`;
+    :`<div class="empty"><b>Encara no hi ha informes</b>Cada diumenge hi trobaràs el resum de la setmana. Mentrestant, fes un cop d'ull a la <a href="#guia">guia ràpida</a>.</div>`}</div>`;
 }
 
 /* ---------- RELLOTGE I ARRENCADA ---------- */
@@ -822,12 +822,12 @@ setInterval(tick,500);
 if(draft.startedAt) wake();
 route(); renderPend();
 /* ---------- GRUPS DE PESTANYES: una pestanya a la barra i un selector a dalt de la vista ---------- */
-function GROUPS(){return (typeof CV==="function"&&CV())?[["rutines","progres"],["pauta","nutricio"],["setmana","any"]]:[["avui","progres"],["setmana","any"]]}
-const SUBLBL={avui:"Entrenament",rutines:"Rutines",progres:"Progrés",setmana:"Setmana",any:"Any",pauta:"Pauta",nutricio:"Menjar"};
+function GROUPS(){return (typeof CV==="function"&&CV())?[["rutines","progres"],["pauta","nutricio"],["setmana","any"],["pes","cos"]]:[["avui","progres"],["setmana","any"],["informes","cos","guia"]]}
+const SUBLBL={avui:"Entrenament",rutines:"Rutines",progres:"Progrés",setmana:"Setmana",any:"Any",pauta:"Pauta",nutricio:"Menjar",pes:"Pes",informes:"Informes",cos:"Fotos i mesures",guia:"Guia"};
 function groupOf(v){return GROUPS().find(g=>g.includes(v))||null}
 function subNav(v){const g=groupOf(v); if(!g) return ""; if(v==="avui"&&(inWorkout()||lastSaved)) return "";
   return `<nav class="subnav" aria-label="Apartats">${g.map(x=>`<a href="#${x}" class="${x===v?"on":""}"${x===v?' aria-current="page"':""}>${SUBLBL[x]}</a>`).join("")}</nav>`}
-{const FN={renderAvui:"avui",renderProgres:"progres",renderSetmana:"setmana",renderAny:"any",renderRutines:"rutines",renderPauta:"pauta",renderNutricio:"nutricio"};
+{const FN={renderAvui:"avui",renderProgres:"progres",renderSetmana:"setmana",renderAny:"any",renderRutines:"rutines",renderPauta:"pauta",renderNutricio:"nutricio",renderPes:"pes",renderInformes:"informes",renderCos:"cos",renderGuia:"guia"};
  Object.keys(FN).forEach(n=>{const f=window[n]; if(typeof f!=="function") return;
   window[n]=function(){const r=f.apply(this,arguments); const el=document.getElementById("v-"+FN[n]);
     if(el&&!el.querySelector(":scope > .subnav")){const s=subNav(FN[n]); if(s) el.insertAdjacentHTML("afterbegin",s)} return r}});}
@@ -843,7 +843,7 @@ if(window.QStore) QStore.on("_view",()=>{ lastSaved=null; progEx=null; nutShow=n
       if(sheetKind) return; render();},
     err=>{clearTimeout(timer);setStatus("No s'han pogut carregar les dades ("+col+"): "+err.message)});};
   restoreDraft(); flushPend();
-  sub("exercises"); sub("sessions",["date","desc"]); sub("templates"); sub("reports",["week","desc"]); sub("bodyweight",["date","desc"]); sub("targets"); sub("nutrition"); sub("kcallog",["date","desc"]); sub("intake"); sub("programs"); sub("checkins");
+  sub("exercises"); sub("sessions",["date","desc"]); sub("templates"); sub("reports",["week","desc"]); sub("bodyweight",["date","desc"]); sub("targets"); sub("nutrition"); sub("kcallog",["date","desc"]); sub("intake"); sub("programs"); sub("checkins"); sub("body",["date","desc"]);
 })();
 
 /* service worker */

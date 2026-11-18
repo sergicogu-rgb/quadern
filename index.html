@@ -136,6 +136,15 @@ button.go{font-family:var(--display);font-size:24px;font-weight:800;letter-spaci
 .pe-doc{border:1px solid var(--line);border-radius:12px;padding:10px;display:flex;flex-direction:column;gap:8px;background:var(--surface)}.pe-doc.off{opacity:.55}.pe-doc.off span{text-decoration:line-through}
 .pe-sets{display:flex;flex-wrap:wrap;gap:8px}.pe-set{display:flex;align-items:flex-end;gap:6px}.pe-set>b{font-size:13px;color:var(--muted);padding-bottom:10px}
 .pe-f{display:flex;flex-direction:column;gap:2px;font-size:11px;color:var(--muted)}.pe-f input{height:38px;padding:4px 8px;font-size:15px}
+.bgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.bgrid small.sub{font-size:11px}
+.pp3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.ppslot{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;aspect-ratio:3/4;height:auto;padding:0;border:1.5px dashed var(--line);border-radius:14px;background:var(--card);overflow:hidden;position:relative;margin:0}
+.ppslot span{font-size:26px;color:var(--accent)} .ppslot b{font-size:12px}
+.ppslot.has{border-style:solid} .ppslot.has img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover} .ppslot.has b{position:absolute;bottom:6px;left:6px;background:rgba(0,0,0,.55);color:#fff;padding:2px 8px;border-radius:8px}
+.ppcmp{display:grid;grid-template-columns:1fr 1fr;gap:8px}.ppcmp figure{margin:0}.ppcmp img{width:100%;aspect-ratio:3/4;object-fit:cover;border-radius:12px;background:var(--line)}.ppcmp figcaption{font-size:12px;color:var(--muted);text-align:center;margin-top:4px}
+.ppseg{display:flex;gap:4px}.ppseg button{padding:4px 10px;min-height:0;height:auto;border-radius:999px;font-size:13px}.ppseg button.on{background:var(--accent-soft);color:var(--accent);font-weight:700}
+.gstep{display:flex;gap:12px;align-items:flex-start}.gstep .gn{flex-shrink:0;width:32px;height:32px;border-radius:50%;background:var(--accent);color:var(--bg);font-weight:800;display:flex;align-items:center;justify-content:center}.gstep p{margin:2px 0 4px;font-size:14px;line-height:1.45;color:var(--muted)}.gstep a{font-weight:700;color:var(--accent);text-decoration:none;font-size:14px}
+.guidec{display:flex;align-items:center;gap:10px}.gbtn{padding:8px 12px;border-radius:12px;background:var(--accent);color:var(--bg);font-weight:700;text-decoration:none;font-size:14px;white-space:nowrap}.guidec button{padding:4px 8px;min-height:0;height:auto}
 .welcome-rep .wr-sec p{margin:2px 0 0;font-size:14px;line-height:1.45;color:var(--muted)}
 .quick{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
 .quick .val{font-family:var(--display);font-size:34px;font-weight:800;line-height:1}
@@ -360,6 +369,8 @@ body.cv .top .brand{font-size:18px}
     <section id="v-rutines" hidden></section>
     <section id="v-pauta" hidden></section>
     <section id="v-fitxa" hidden></section>
+    <section id="v-cos" hidden></section>
+    <section id="v-guia" hidden></section>
   </main>
 </div>
 
@@ -369,7 +380,7 @@ body.cv .top .brand{font-size:18px}
     <a href="#pes" data-v="pes"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="4"/><path d="M9 9.5a4 4 0 0 1 6 0M12 12l1.5-2.5"/></svg>Pes</a>
     <a href="#setmana" data-v="setmana"><svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/></svg>Ritme</a>
     <a href="#nutricio" data-v="nutricio"><svg viewBox="0 0 24 24"><path d="M12 7c-1.5-2.5-6.5-2.5-7 2.5-.4 4.5 2.5 10.5 5 10.5 1 0 1.3-.6 2-.6s1 .6 2 .6c2.5 0 5.4-6 5-10.5C18.5 4.5 13.5 4.5 12 7z"/><path d="M12 7c0-2 1-3.5 3-4"/></svg>Menjar</a>
-    <a href="#informes" data-v="informes"><svg viewBox="0 0 24 24"><path d="M7 3h7l4 4v14H7z"/><path d="M14 3v4h4M10 12h5M10 16h5"/></svg>Informes</a>
+    <a href="#informes" data-v="informes"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg>Jo</a>
   </div>
 </nav>
 <div class="wobar" id="wobar" hidden></div>
@@ -377,6 +388,7 @@ body.cv .top .brand{font-size:18px}
 <div class="scrim" id="scrim" hidden><div class="sheet" id="sheet" role="dialog" aria-modal="true"></div></div>
 <div id="toast" class="toast" hidden></div>
 <input type="file" id="photo-in" accept="image/*" hidden>
+<input type="file" id="pp-in" accept="image/*" hidden>
 <input type="file" id="imp-in" accept="application/json,.json" hidden>
 <div id="lb" class="lb" hidden><p id="lb-name"></p><img id="lb-img" alt=""><div class="actions"><button id="lb-change">Canviar foto</button><button class="primary" id="lb-close">Tancar</button></div></div>
 
@@ -405,6 +417,7 @@ button.go{font-family:var(--body)!important;text-transform:none!important;letter
 <script src="vendor/chart-4.4.1.umd.js"></script>
 <script src="coach.js"></script>
 <script src="exphotos.js"></script>
+<script src="jo.js"></script>
 <script src="engage.js"></script>
 <script src="evolution.js"></script>
 <script src="app.js"></script>

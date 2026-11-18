@@ -6,7 +6,7 @@
 const CV=()=>!!(window.QStore&&QStore.viewing);
 const IS_COACH=()=>!!(window.QStore&&QStore.isCoach());
 const IS_CLIENT=()=>!!(window.QStore&&QStore.isClient());
-const COACH_VIEWS=["resum","rutines","pauta","pes","progres","setmana","any","nutricio","informes"];
+const COACH_VIEWS=["resum","rutines","pauta","pes","progres","setmana","any","nutricio","informes","cos"];
 const CLIENT_HIDDEN=["clients","resum","rutines","pauta"];
 
 /* ---------- pestanyes i capçalera ---------- */

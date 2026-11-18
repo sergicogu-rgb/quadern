@@ -92,8 +92,10 @@ Deno.serve(async (req) => {
     if (body.action === "delete_account") {
       if (me?.role === "coach") return json({ error: "El compte de l'entrenador no es pot esborrar des d'aquí" }, 400);
       // fotos
-      const { data: files } = await admin.storage.from("fotos").list(user.id, { limit: 1000 });
-      if (files?.length) await admin.storage.from("fotos").remove(files.map((f) => `${user.id}/${f.name}`));
+      for (const bucket of ["fotos", "progres"]) {
+        const { data: files } = await admin.storage.from(bucket).list(user.id, { limit: 1000 });
+        if (files?.length) await admin.storage.from(bucket).remove(files.map((f) => `${user.id}/${f.name}`));
+      }
       await admin.from("docs").delete().eq("user_id", user.id);
       await admin.from("consents").delete().eq("user_id", user.id);
       await admin.from("invites").delete().eq("user_id", user.id);
