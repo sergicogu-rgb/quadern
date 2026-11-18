@@ -99,30 +99,34 @@ async function bodyPhoto(f){
 }
 document.addEventListener("change",e=>{if(e.target&&e.target.id==="pp-in"){const f=e.target.files&&e.target.files[0]; e.target.value=""; bodyPhoto(f)}});
 
-/* ---------- Guia ---------- */
+/* ---------- Guia (visual) ---------- */
+const GICO={avui:'<path d="M6.5 6.5v11M17.5 6.5v11M3.5 9v6M20.5 9v6M6.5 12h11"/>',pes:'<rect x="4" y="4" width="16" height="16" rx="4"/><path d="M9 9.5a4 4 0 0 1 6 0M12 12l1.5-2.5"/>',
+  setmana:'<rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/>',nutricio:'<path d="M12 7c-1.5-2.5-6.5-2.5-7 2.5-.4 4.5 2.5 10.5 5 10.5 1 0 1.3-.6 2-.6s1 .6 2 .6c2.5 0 5.4-6 5-10.5C18.5 4.5 13.5 4.5 12 7z"/><path d="M12 7c0-2 1-3.5 3-4"/>',
+  informes:'<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/>'};
+const gsvg=k=>`<svg viewBox="0 0 24 24" aria-hidden="true">${GICO[k]}</svg>`;
 function renderGuia(){
   const el=$("#v-guia"), ai=((window.QStore||{}).AI||{name:"ELION"}).name;
-  const step=(n,t,body,href,cta)=>`<div class="gstep"><span class="gn">${n}</span><div><b>${t}</b><p>${body}</p>${href?`<a href="${href}">${cta} ›</a>`:""}</div></div>`;
-  const sec=(ico,t,body)=>`<div class="wr-sec"><span class="wr-ico" aria-hidden="true">${ico}</span><div><b>${t}</b><p>${body}</p></div></div>`;
-  el.innerHTML=`<div class="stack"><div class="vhead"><span class="lbl">En 2 minuts</span><h1>Guia <em>ràpida</em></h1></div>
-    <div class="card stack"><span class="lbl">Primers passos</span>
-      ${step(1,"Entrena","A <b>Avui</b> tens la rutina del dia amb les càrregues proposades. Prem <b>Començar</b>, apunta els kg i les repeticions i toca ✓ en acabar cada sèrie. En acabar, <b>Finalitzar</b>.","#avui","Anar a Avui")}
-      ${step(2,"Pesa't cada matí","En dejú, després d'anar al lavabo. Compta la mitjana de la setmana, no el número d'un dia.","#pes","Apuntar el pes")}
-      ${step(3,"Segueix la pauta","A <b>Menjar</b> hi tens els àpats amb grams i equivalències. No cal apuntar res: s'ajusta pel teu pes.","#nutricio","Veure la pauta")}
-    </div>
-    <div class="card stack welcome-rep"><span class="lbl">Cada apartat</span>
-      ${sec("🏋️","Avui","Els dies d'entrenament (Dl, Dt, Dj, Dv) hi veuràs la rutina. Els dies de descans t'ho indica i et recorda els hàbits. Cada exercici té una foto d'inici i final del moviment.")}
-      ${sec("📈","Com progressem","Cada exercici té un rang de repeticions (per exemple 8–12). Quan arribes al màxim a totes les sèries deixant-ne 1-3 a la recambra (RIR), l'app et proposa pujar el pes la vegada següent.")}
-      ${sec("⚖️","Pes","Un toc cada matí. Si a les 12 encara no l'has apuntat, t'arriba un recordatori.")}
-      ${sec("🍽️","Menjar","La pauta amb els àpats i les equivalències de cada aliment. El teu entrenador l'ajusta segons l'evolució del pes.")}
-      ${sec("📊","Ritme","La teva setmana i la constància de tot l'any.")}
-      ${sec("🙋","Jo","<b>Informes</b>: el resum de cada setmana i els missatges del teu entrenador. <b>Fotos i mesures</b>: cintura, maluc… i 3 fotos cada 2-4 setmanes, privades. <b>Guia</b>: aquesta pàgina.")}
-      ${sec("📝","Check-in del diumenge","Quatre preguntes ràpides (energia, son, gana i estrès) i un comentari. Ajuda a ajustar la setmana següent.")}
-      ${sec("🤖",esc(ai),esc(ai)+", l'entrenador IA, analitza les teves dades i proposa ajustos. El teu entrenador els revisa sempre abans que t'arribin.")}
-      ${sec("⚙︎","Ajustos","Activa les notificacions i afegeix l'app a la pantalla d'inici. Des d'aquí també pots descarregar o esborrar les teves dades.")}
-    </div>
-    ${typeof planDoc==="function"&&(planDoc()||{}).status==="provisional"?`<div class="note" style="margin:0">Els primers dies la rutina i la pauta són <b>provisionals</b>: les ha preparat l'app amb la teva fitxa i el teu entrenador les revisa en menys de 24 h.</div>`:""}
+  const set=(kg,r,ok)=>`<div class="gm-set ${ok?"ok":""}"><span>${kg} kg</span><span>× ${r}</span><i>${ok?"✓":""}</i></div>`;
+  const slides=[
+    ["1","Entrena","Començar → apunta kg i reps → toca ✓",`<div class="gm"><b class="gm-t">Press de banca</b><small>8–12 reps</small>${set("60","12",1)}${set("60","11",1)}${set("60","10",0)}<span class="gm-btn">Finalitzar</span></div>`,"#avui","Anar a Avui"],
+    ["2","Pesa't","Cada matí, en dejú. Compta la mitjana.",`<div class="gm gm-c"><div class="gm-step"><span>−</span><b>78,4</b><span>+</span></div><small>kg · en dejú</small><svg class="gm-spark" viewBox="0 0 120 30" aria-hidden="true"><polyline points="0,8 20,10 40,9 60,14 80,15 100,19 120,21"/></svg></div>`,"#pes","Apuntar el pes"],
+    ["3","Menja","Segueix la pauta. No cal apuntar res.",`<div class="gm"><b class="gm-t">🍽️ Dinar</b><div class="gm-row"><span>Arròs</span><b>80 g</b></div><div class="gm-eq">↔ pasta 80 g · patata 250 g</div><div class="gm-row"><span>Pollastre</span><b>150 g</b></div><div class="gm-row"><span>Verdura</span><b>lliure</b></div></div>`,"#nutricio","Veure la pauta"],
+    ["4","Cada setmana","Diumenge: check-in. Cada 2-4 setmanes: fotos.",`<div class="gm"><div class="gm-ci"><span>⚡ Energia</span><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></div><div class="gm-ci"><span>😴 Son</span><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></div><div class="gm-ph"><span>📷</span><span>📷</span><span>📷</span></div></div>`,"#cos","Fotos i mesures"]];
+  const bar=[["avui","Avui","entrenar"],["pes","Pes","cada matí"],["setmana","Ritme","constància"],["nutricio","Menjar","la pauta"],["informes","Jo","informes i fotos"]];
+  el.innerHTML=`<div class="stack"><div class="vhead"><span class="lbl">En 1 minut</span><h1>Guia <em>ràpida</em></h1></div>
+    <div class="gcar" id="g-car">${slides.map(([n,t,txt,mock,href,cta])=>`<article class="gslide"><div class="gvis">${mock}</div><div class="gtx"><span class="gn">${n}</span><div><b>${t}</b><p>${txt}</p></div></div><a class="gbtn" href="${href}">${cta}</a></article>`).join("")}</div>
+    <div class="gdots" id="g-dots">${slides.map((_,i)=>`<i class="${i?"":"on"}"></i>`).join("")}</div>
+    <div class="card stack"><span class="lbl">La barra de baix</span>
+      <div class="gbar">${bar.map(([k,l,d])=>`<a href="#${k}">${gsvg(k)}<b>${l}</b><small>${d}</small></a>`).join("")}</div></div>
+    <div class="card stack"><span class="lbl">Com puges de pes</span>
+      <div class="gprog"><div><small>Sessió 1</small><b>10 · 10 · 9</b><span>60 kg</span></div><i>→</i><div><small>Sessió 2</small><b>12 · 12 · 12</b><span>60 kg</span></div><i>→</i><div class="up"><small>Sessió 3</small><b>8 · 8 · 8</b><span>62,5 kg ⬆</span></div></div>
+      <p class="sub" style="margin:0;font-size:13px">Quan fas el màxim del rang a totes les sèries, l'app et proposa pujar. Deixa sempre 1-3 reps a la recambra.</p></div>
+    <div class="gai"><span class="gav">${esc(ai.charAt(0))}</span><div><b>${esc(ai)}</b> analitza les teves dades i proposa ajustos.<br><small>✓ El teu entrenador ho revisa sempre abans que t'arribi.</small></div></div>
+    <div class="gtips"><span>🔔 Activa les notificacions a ⚙︎</span><span>📲 Afegeix l'app a la pantalla d'inici</span></div>
+    ${typeof planDoc==="function"&&(planDoc()||{}).status==="provisional"?`<div class="note" style="margin:0">Els primers dies la rutina i la pauta són <b>provisionals</b>: el teu entrenador les revisa en menys de 24 h.</div>`:""}
   </div>`;
+  const car=$("#g-car"), dots=[...document.querySelectorAll("#g-dots i")];
+  if(car) car.addEventListener("scroll",()=>{const w=car.firstElementChild?car.firstElementChild.offsetWidth+12:1, i=Math.round(car.scrollLeft/w); dots.forEach((d,j)=>d.classList.toggle("on",j===i))},{passive:true});
   try{localStorage.setItem("guia_vista","1")}catch(e){}
 }
 /* Avís a Avui: les 2 primeres setmanes, fins que s'obre la guia o es tanca l'avís */
