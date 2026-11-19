@@ -1,6 +1,6 @@
 /* NEXFORM · funciona sense connexió: guarda l'app i les llibreries al mòbil */
-const V="quadern-v36";
-const CORE=["./","index.html","store.js","coach.js","valoracio.js","engage.js","evolution.js","exphotos.js","jo.js","app.js","manifest.webmanifest","icon-192.png","icon-512.png","apple-touch-icon.png",
+const V="quadern-v37";
+const CORE=["./","index.html","store.js","coach.js","valoracio.js","senseapp.js","app.css","engage.js","evolution.js","exphotos.js","jo.js","app.js","manifest.webmanifest","icon-192.png","icon-512.png","apple-touch-icon.png",
  "vendor/supabase-2.45.4.js","vendor/chart-4.4.1.umd.js"];
 self.addEventListener("install",e=>{e.waitUntil(caches.open(V).then(c=>Promise.all(CORE.map(u=>c.add(u).catch(()=>{})))).then(()=>self.skipWaiting()))});
 self.addEventListener("activate",e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==V).map(k=>caches.delete(k)))).then(()=>self.clients.claim()))});
@@ -9,7 +9,7 @@ self.addEventListener("fetch",e=>{
   const u=new URL(r.url);
   if(u.hostname.endsWith("supabase.co")) return;              // dades: sempre a la xarxa
   const own=u.origin===location.origin;
-  if(own&&(r.mode==="navigate"||/\.(html|js|webmanifest)$/.test(u.pathname))){
+  if(own&&(r.mode==="navigate"||/\.(html|js|css|webmanifest)$/.test(u.pathname))){
     // app: primer la xarxa (per rebre actualitzacions), si no hi ha connexió la còpia guardada
     e.respondWith(fetch(r,{cache:"no-cache"}).then(res=>{const c=res.clone();caches.open(V).then(x=>x.put(r,c));return res}).catch(()=>caches.match(r).then(m=>m||caches.match("index.html"))));
     return;

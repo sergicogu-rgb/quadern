@@ -71,6 +71,7 @@ function renderClients(){
       <a class="go" href="https://wa.me/?text=${encodeURIComponent(waText(invName,invLink))}" target="_blank" rel="noopener" style="display:flex;align-items:center;justify-content:center;gap:8px;text-decoration:none;color:#fff;background:#25D366;border-radius:16px;padding:15px;font-weight:700;font-size:18px">Obrir WhatsApp</a>
       <div class="btns" style="margin:0"><button type="button" id="inv-share">Compartir…</button><button type="button" id="inv-copy">Copiar el missatge</button></div></div>`:""}
   </form>`;
+  if(typeof noAppCard==="function") h+=noAppCard();
   if(ovwErr) h+=`<div class="note">No s'han pogut carregar els clients: ${esc(ovwErr)}</div>`;
   else if(ovw==null) h+=`<div class="empty"><b>Carregant…</b></div>`;
   else if(!ovw.length) h+=`<div class="empty"><b>Encara no tens clients</b>Convida el primer amb el formulari de dalt.</div>`;
@@ -118,7 +119,7 @@ document.addEventListener("click",async e=>{
   if(b.dataset.wa){ const r=await sendInvite(b.dataset.wa,b.dataset.name,b,true); window.scrollTo(0,0); return r }
   if(b.id==="inv-wa"){ return sendInvite($("#inv-email").value.trim(),$("#inv-name").value.trim(),b,true) }
   if(b.dataset.cancel){try{await QStore.sb.from("invites").delete().eq("email",b.dataset.cancel); ovw=null; loadOverview(); toast("Invitació anul·lada")}catch(err){toast(err.message)} return}
-  if(b.id==="ovw-reload"){ovw=null;ovwErr=null;render();return}
+  if(b.id==="ovw-reload"){ovw=null;ovwErr=null;if(typeof naLoad==="function"){naLinks=null;naNew=null};render();return}
   if(b.id==="inv-copy"){const t=waText(invName,invLink); try{await navigator.clipboard.writeText(t);toast("Missatge copiat")}catch(err){prompt("Copia el missatge:",t)} return}
   if(b.id==="inv-share"){try{await navigator.share({text:waText(invName,invLink)})}catch(err){} return}
 });

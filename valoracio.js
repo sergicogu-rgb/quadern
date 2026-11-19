@@ -106,7 +106,7 @@ const VAL_ES={
 "Mentrestant, afegeix l'app a la pantalla d'inici i activa les notificacions a ⚙︎. Demà al matí, pesa't en dejú i apunta-ho.":"Mientras tanto, añade la app a la pantalla de inicio y activa las notificaciones en ⚙︎. Mañana por la mañana, pésate en ayunas y apúntalo.",
 "Valoració inicial":"Valoración inicial","Uns 8-10 minuts. Es desa a cada pas: pots parar i continuar quan vulguis.":"Unos 8-10 minutos. Se guarda en cada paso: puedes parar y seguir cuando quieras.",
 "En quin idioma vols fer-la?":"¿En qué idioma quieres hacerla?","L'app et parlarà en aquest idioma.":"La app te hablará en este idioma.",
-"Anar a l'inici":"Ir al inicio","Estic preparant la teva rutina":"Estoy preparando tu rutina","He rebut la teva valoració. Rebràs un avís quan la tingui llesta. Mentrestant, pesa't cada matí en dejú.":"He recibido tu valoración. Recibirás un aviso cuando la tenga lista. Mientras tanto, pésate cada mañana en ayunas."
+"Anar a l'inici":"Ir al inicio","Et preparo la rutina a mida, exercici per exercici.":"Te preparo la rutina a medida, ejercicio por ejercicio.","Te l'envio en PDF, amb el vídeo de cada exercici.":"Te la envío en PDF, con el vídeo de cada ejercicio.","Ja pots tancar aquesta pàgina.":"Ya puedes cerrar esta página.","Et prepararé la rutina en aquest idioma.":"Te prepararé la rutina en este idioma.","Estic preparant la teva rutina":"Estoy preparando tu rutina","He rebut la teva valoració. Rebràs un avís quan la tingui llesta. Mentrestant, pesa't cada matí en dejú.":"He recibido tu valoración. Recibirás un aviso cuando la tenga lista. Mientras tanto, pésate cada mañana en ayunas."
 };
 let valLang="ca";
 const VT=s=>valLang==="es"&&VAL_ES[s]!=null?VAL_ES[s]:s;
@@ -265,9 +265,11 @@ function vDone(){
   return `<section class="vslide vdone"><div class="vok"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div>
     <h1 class="vbig">${VT("Gràcies")}${n?", "+esc(n):""}!</h1>
     <p style="font-size:18px;margin:0;max-width:34ch">${VT("Ja tinc tota la informació que necessito. Em poso mans a l'obra amb la teva rutina.")}</p>
-    <ol class="vsteps"><li>${VT("Reviso les teves respostes una per una")}${vHealth(VA)?VT(", començant per les de salut"):""}.</li><li>${VT("Et preparo la rutina i la pauta a mida.")}</li><li>${VT("Quan estiguin llestes, et ve un avís i ja pots començar.")}</li></ol>
+    ${window.V_FORM?`<ol class="vsteps"><li>${VT("Reviso les teves respostes una per una")}${vHealth(VA)?VT(", començant per les de salut"):""}.</li><li>${VT("Et preparo la rutina a mida, exercici per exercici.")}</li><li>${VT("Te l'envio en PDF, amb el vídeo de cada exercici.")}</li></ol>
+    <p class="vhelp" style="margin:0">${VT("Ja pots tancar aquesta pàgina.")}</p></section>`
+    :`<ol class="vsteps"><li>${VT("Reviso les teves respostes una per una")}${vHealth(VA)?VT(", començant per les de salut"):""}.</li><li>${VT("Et preparo la rutina i la pauta a mida.")}</li><li>${VT("Quan estiguin llestes, et ve un avís i ja pots començar.")}</li></ol>
     <p class="vhelp" style="margin:0">${VT("Mentrestant, afegeix l'app a la pantalla d'inici i activa les notificacions a ⚙︎. Demà al matí, pesa't en dejú i apunta-ho.")}</p>
-    <div class="vfoot"><a class="vcta" href="#avui" style="display:grid;place-items:center;text-decoration:none">${VT("Anar a l'inici")}</a></div></section>`;
+    <div class="vfoot"><a class="vcta" href="#avui" style="display:grid;place-items:center;text-decoration:none">${VT("Anar a l'inici")}</a></div></section>`}`;
 }
 function vValidate(q){
   if(q.t==="intro") return true;
@@ -313,14 +315,18 @@ function valFlags(A){
   if(A.surg==="si") F.push({level:"md",text:"Operació",detail:A.surgx||""});
   return F;
 }
-async function vSend(){
-  const b=$("#v-send"); vBusy=true; if(b){b.disabled=true;b.textContent=VT("Enviant…")}
+function vBuildDoc(){
   const A=VA, lv=valLevel(A), fr=valDays(A), now=new Date().toISOString();
   const parq=["parq0","parq1","parq2","parq3","parq4","parq5"].map(k=>A[k]==="nose"?"si":A[k]);
   const doc={version:2,lang:A.lang||"ca",name:A.name,sex:A.sex,birth:A.birth,cm:A.cm,kg:A.kg,goal:A.goal,exp:A.exp,days:A.days,minutes:A.minutes,place:A.place,trainTime:A.trainTime,pal:A.pal,
     injuries:A.injuries||"",medical:[A.medical&&A.medical!==VT("Res més")?A.medical:"",A.parq0x,A.parq1x,A.parq2x,A.parq3x,A.surgx?"Operació: "+A.surgx:""].filter(Boolean).join(" · "),
     allergies:A.allergies||"",dislikes:A.dislikes||"",meals:A.meals,notes:A.notes||"",parq,parqAlert:vHealth(A),
     assessment:{answers:A,level:lv.txt,levelWhy:lv.why,suggestedDays:fr.f,suggestedWhy:fr.why,flags:valFlags(A)},createdAt:now,updatedAt:now};
+  return doc;
+}
+async function vSend(){
+  const b=$("#v-send"); vBusy=true; if(b){b.disabled=true;b.textContent=VT("Enviant…")}
+  const A=VA, doc=vBuildDoc();
   try{
     await db.collection("intake").doc("inicial").set(doc);
     const t=todayISO(); if(A.kg&&!S.bodyweight.some(x=>x.date===t)) await db.collection("bodyweight").doc(t).set({date:t,kg:A.kg});
@@ -362,13 +368,13 @@ function draftWaitCard(){
 }
 
 /* ---------- entrenador: informe de la valoració (a Resum) ---------- */
-function assessCard(){
-  const d=intakeDoc(); if(!d||+d.version<2) return null;
+function assessCard(doc,open=true){
+  const d=doc||intakeDoc(); if(!d||+d.version<2) return null;
   const s=d.assessment||{}, A=s.answers||{}, F=s.flags||[], hi=F.some(f=>f.level==="hi");
   const fq=k=>{const q=vQ(k); return q?esc(vFmtCA(q,A[k])):""};
   const tag=(t,x)=>`<div class="vln"><span class="vtag v-${t}">${{d:"Declarat",i:"Interpretació",f:"Falta"}[t]}</span><span>${x}</span></div>`;
   const unk=VQ.filter(q=>q.t==="single"&&A[q.id]==="nose").map(q=>q.q);
-  return `<details class="card" open><summary><b>Valoració inicial</b>${F.length?` <span class="pill w">${hi?"Salut: revisar abans de començar":"Salut: tenir en compte"}</span>`:""} <span class="sub" style="font-size:12px">${d.lang==="es"?"· castellà":""}</span></summary><div class="stack" style="gap:10px;margin-top:10px">
+  return `<details class="card" ${open?"open":""}><summary><b>Valoració inicial</b>${F.length?` <span class="pill w">${hi?"Salut: revisar abans de començar":"Salut: tenir en compte"}</span>`:""} <span class="sub" style="font-size:12px">${d.lang==="es"?"· castellà":""}</span></summary><div class="stack" style="gap:10px;margin-top:10px">
     ${tag("d",`${A.sex==="d"?"Dona":"Home"}, ${ageFrom(A.birth)} anys · ${esc(A.cm)} cm · ${esc(String(A.kg).replace(".",","))} kg · ${esc(A.job||"feina no indicada")}`)}
     ${tag("d",`Dia a dia: ${fq("pal")} · horari: ${fq("shift")} · asseguda ${fq("sit")} h`)}
     ${F.length?F.map(f=>`<div class="note" style="${f.level==="hi"?"border-left:3px solid var(--bad)":""}"><b>${esc(f.text)}</b>${f.detail?`<div class="sub">${esc(f.detail)}</div>`:""}</div>`).join(""):`<div class="sub">Sense alertes de salut (PAR-Q+ tot «no»).</div>`}
