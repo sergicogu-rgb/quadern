@@ -17,6 +17,9 @@ const fdate = (iso, o) => dt(iso).toLocaleDateString("ca-ES", o || { day: "numer
 const ageFrom = b => { if (!b) return null; const d = new Date(b), n = new Date(); let a = n.getFullYear() - d.getFullYear(); if (n < new Date(n.getFullYear(), d.getMonth(), d.getDate())) a--; return a; };
 const INTAKE_GOALS = ["Perdre greix", "Guanyar múscul", "Recomposició (perdre greix i guanyar múscul)", "Millorar força o rendiment", "Salut i benestar"];
 const FTOKEN = (/[#&]t=([a-f0-9]{16,64})/.exec(location.hash) || [])[1] || "";
+/* si s'obre un altre enllaç a la mateixa pestanya, només canvia el #t=… i el navegador no recarrega la pàgina:
+   sense això es quedaria el formulari (i el nom) de la persona anterior */
+window.addEventListener("hashchange", () => location.reload());
 const QStore = { uid: "f_" + FTOKEN.slice(0, 12), profile: { name: "" } };
 const intakeDoc = () => null;
 
