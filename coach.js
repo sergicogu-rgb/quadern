@@ -39,13 +39,14 @@ function allowView(v){
   if(v==="rutines"||v==="pauta") return IS_COACH()?v:"avui";
   if(v==="resum") return "avui";
   if(v==="fitxa") return IS_CLIENT()?v:"avui";
-  if(needIntake()) return "fitxa";
+  if(v==="valoracio") return IS_CLIENT()?v:"avui";
+  if(needIntake()) return "valoracio";
   return v;
 }
 
 /* ---------- PANELL DE CLIENTS ---------- */
 let ovw=null, ovwErr=null, ovwInv=[], ovwBusy=false, invLink=null, invName="", invWhy="", unlinkConfirm=null;
-const waText=(n,l)=>`Ei${n?" "+n.split(" ")[0]:""}! T'he convidat a NEXFORM, l'app amb què porto els entrenaments 💪\n\n1. Obre aquest enllaç i crea't una contrasenya:\n${l}\n\n2. Accepta el consentiment i omple la fitxa inicial.\n3. Afegeix l'app a la pantalla d'inici (Safari → Compartir → Afegir a pantalla d'inici) i activa les notificacions a ⚙︎.\n\nAquella nit et preparem la rutina i la pauta!`;
+const waText=(n,l)=>`Ei${n?" "+n.split(" ")[0]:""}! T'he convidat a NEXFORM, l'app amb què porto els entrenaments 💪\n\n1. Obre aquest enllaç i crea't una contrasenya:\n${l}\n\n2. ${QStore.consentOn?"Accepta el consentiment i r":"R"}espon la valoració inicial (uns 10 minuts).\n3. Afegeix l'app a la pantalla d'inici (Safari → Compartir → Afegir a pantalla d'inici) i activa les notificacions a ⚙︎.\n\nAquella nit et preparem la rutina i la pauta!`;
 async function loadOverview(){
   if(ovwBusy) return; ovwBusy=true;
   try{
@@ -65,7 +66,7 @@ function renderClients(){
     <div class="row"><label class="f"><span class="lbl">Nom</span><input id="inv-name" autocomplete="off" required></label>
     <label class="f"><span class="lbl">Correu</span><input id="inv-email" type="email" autocomplete="off" required></label></div>
     <div class="btns" style="margin:0"><button class="primary" id="inv-wa" type="button" style="height:50px">📲 Enllaç per WhatsApp</button><button id="inv-go" style="height:50px">✉️ Per correu</button></div>
-    <p class="sub" style="font-size:13px">El correu serà el seu usuari. Amb l'enllaç (WhatsApp) o el correu crearà la contrasenya, acceptarà el consentiment i omplirà la fitxa.</p>
+    <p class="sub" style="font-size:13px">El correu serà el seu usuari. Amb l'enllaç (WhatsApp) o el correu crearà la contrasenya${QStore.consentOn?", acceptarà el consentiment":""} i farà la valoració inicial.</p>
     ${invLink?`<div class="card stack" style="border:1.5px solid var(--good)"><span><b>Enllaç llest${invName?" per a "+esc(invName):""}.</b> ${esc(invWhy||"")} Caduca en 24 h i només serveix per a aquesta persona.</span>
       <a class="go" href="https://wa.me/?text=${encodeURIComponent(waText(invName,invLink))}" target="_blank" rel="noopener" style="display:flex;align-items:center;justify-content:center;gap:8px;text-decoration:none;color:#fff;background:#25D366;border-radius:16px;padding:15px;font-weight:700;font-size:18px">Obrir WhatsApp</a>
       <div class="btns" style="margin:0"><button type="button" id="inv-share">Compartir…</button><button type="button" id="inv-copy">Copiar el missatge</button></div></div>`:""}
@@ -74,7 +75,8 @@ function renderClients(){
   else if(ovw==null) h+=`<div class="empty"><b>Carregant…</b></div>`;
   else if(!ovw.length) h+=`<div class="empty"><b>Encara no tens clients</b>Convida el primer amb el formulari de dalt.</div>`;
   else ovw.forEach(c=>{
-    const cons=(c.consent_at?`<span class="pill">RGPD ✓</span>`:`<span class="pill w">Consentiment pendent</span>`)+(c.consent_at&&!c.intake_done?`<span class="pill w">Fitxa pendent</span>`:"")+(c.intake_alert?`<span class="pill w">Salut: revisar</span>`:"")+(c.proposals_pending?`<span class="pill" style="background:var(--accent);color:var(--accent-ink)">🤖 ${c.proposals_pending} per revisar</span>`:"")+(c.consent_at&&!c.ai?`<span class="pill w">Falta acceptar IA</span>`:"")+(c.plan_pending?`<span class="pill" style="background:var(--warn,#c77700);color:#fff">🕒 Rutina per revisar${dueTxt(c.plan_due)}</span>`:"");
+    const con=QStore.consentOn; /* consentiment desactivat de moment: no se'n mostren les píndoles */
+    const cons=(con?(c.consent_at?`<span class="pill">RGPD ✓</span>`:`<span class="pill w">Consentiment pendent</span>`):"")+((c.consent_at||!con)&&!c.intake_done?`<span class="pill w">Valoració pendent</span>`:"")+(c.intake_alert?`<span class="pill w">Salut: revisar</span>`:"")+(c.proposals_pending?`<span class="pill" style="background:var(--accent);color:var(--accent-ink)">🤖 ${c.proposals_pending} per revisar</span>`:"")+(con&&c.consent_at&&!c.ai?`<span class="pill w">Falta acceptar IA</span>`:"")+(c.plan_pending?`<span class="pill" style="background:var(--warn,#c77700);color:#fff">🕒 Rutina per revisar${dueTxt(c.plan_due)}</span>`:"");
     h+=`<article class="card stack"><div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start">
       <div style="min-width:0"><h3 style="margin:0">${esc(c.name||c.email)}</h3><div class="sub" style="font-size:13px;overflow:hidden;text-overflow:ellipsis">${esc(c.email||"")}</div></div>
       <div class="ph" style="justify-content:flex-end">${cons}</div></div>
@@ -210,9 +212,10 @@ function renderResum(){
   const bw=bwData(), lb=bw[bw.length-1];
   el.innerHTML=`<div class="stack"><div class="vhead"><span class="lbl">${esc(v.email||"")}</span><h1>${esc(v.name||"Client")}</h1></div>
     ${typeof evoCard==="function"?evoCard():""}
+    ${typeof planDraftCard==="function"?planDraftCard():""}
     ${planReviewCard()}
     ${proposalsCard()}
-    ${intakeCard()}
+    ${(typeof assessCard==="function"&&assessCard())||intakeCard()}
     ${autoReportCard()}
     <div class="card tw" style="padding:6px 10px"><table><tbody>
       <tr><td>Rutines</td><td class="r">${tp.length?tp.length+" · propera: "+esc(nx?nx.name:"–"):"<a href='#rutines'>Cap · crea-les</a>"}</td></tr>
@@ -229,7 +232,7 @@ const parseRanges=s=>String(s||"").split(/[,;·]/).map(x=>x.match(/(\d+)\s*[-–
 function renderRutines(){
   const el=$("#v-rutines"); const tp=tplsSorted();
   const exOpts=MUSCLES.map(m=>{const xs=S.exercises.filter(e=>(e.muscle||"Altres")===m).sort((a,b)=>a.name.localeCompare(b.name));return xs.length?`<optgroup label="${esc(m)}">${xs.map(e=>`<option value="${esc(e.id)}">${esc(e.name)}</option>`).join("")}</optgroup>`:""}).join("");
-  let h=`<div class="stack"><div class="vhead"><span class="lbl">${CV()?esc(QStore.viewing.name):"Les meves"} · Dl · Dt · Dj · Dv</span><h1>Rutines</h1></div>${CV()?planReviewCard():""}`;
+  let h=`<div class="stack"><div class="vhead"><span class="lbl">${CV()?esc(QStore.viewing.name):"Les meves"} · Dl · Dt · Dj · Dv</span><h1>Rutines</h1></div>${CV()?(typeof planDraftCard==="function"?planDraftCard():"")+planReviewCard():""}`;
   if(!tp.length) h+=`<div class="empty"><b>Encara no hi ha rutines</b>Crea'n una o copia les d'un altre quadern.</div>`;
   tp.forEach((t,k)=>{
     h+=`<article class="card stack"><div class="row" style="align-items:center"><span class="big" style="font-size:22px;color:var(--muted);flex:0 0 auto">${k+1}</span>
@@ -446,7 +449,7 @@ document.addEventListener("click",async e=>{
 /* ---------- compte del client: privacitat ---------- */
 function accExtra(){
   if(IS_COACH()) return `<button class="primary" id="acc-clients">Panell de clients</button><button id="acc-rut">Les meves rutines</button><button id="acc-pau">Les meves pautes</button>`;
-  if(IS_CLIENT()){return `<button id="acc-fitxa">La meva fitxa</button><button id="acc-priv">Privacitat</button><button class="danger" id="acc-del">Esborrar el compte i totes les dades</button>`}
+  if(IS_CLIENT()){return `<button id="acc-fitxa">La meva fitxa</button>${QStore.consentOn?`<button id="acc-priv">Privacitat</button>`:""}<button class="danger" id="acc-del">Esborrar el compte i totes les dades</button>`}
   return "";
 }
 async function accClick(b){
@@ -548,7 +551,7 @@ document.addEventListener("click",async e=>{
 });
 /* Fitxa vista per l'entrenador (a Resum) */
 function intakeCard(){
-  const d=intakeDoc(); if(!d) return `<div class="note">El client encara no ha omplert la fitxa inicial.</div>`;
+  const d=intakeDoc(); if(!d) return `<div class="note">El client encara no ha fet la valoració inicial.</div>`;
   const pal=(INTAKE_ACT.find(x=>+x[0]===+d.pal)||[])[1]||"";
   const yes=(d.parq||[]).map((v,i)=>v==="si"?PARQ[i]:null).filter(Boolean);
   const row=(k,v)=>v?`<tr><td>${k}</td><td class="r">${esc(v)}</td></tr>`:"";
@@ -641,7 +644,7 @@ document.addEventListener("click",async e=>{
 const planDoc=()=>(S.programs||[]).find(x=>x.id==="inicial")||null;
 function dueTxt(iso){ if(!iso) return ""; const h=Math.round((new Date(iso)-new Date())/36e5); return h>0?` · queden ${h} h`:" · fora de termini" }
 function planBanner(){
-  if(CV()||!IS_CLIENT()) return ""; const p=planDoc(); if(!p) return "";
+  if(CV()||!IS_CLIENT()) return ""; if(typeof draftHidden==="function"&&draftHidden()) return draftWaitCard(); const p=planDoc(); if(!p) return "";
   if(p.status==="provisional") return `<div class="note" style="line-height:1.45"><b>🕒 Rutina i pauta provisionals</b><br>Les hem preparat amb la teva fitxa perquè puguis començar ja. El teu entrenador, graduat en Ciències de l'Activitat Física i l'Esport, les revisarà i personalitzarà en menys de 24 h.${p.rir?`<br><span class="sub" style="font-size:13px">${esc(p.rir)}.</span>`:""}</div>`;
   if(p.status==="revisat"&&p.reviewedAt&&(Date.now()-new Date(p.reviewedAt))<3*864e5) return `<div class="note" style="line-height:1.45"><b>✅ Rutina i pauta revisades</b> pel teu entrenador, graduat en Ciències de l'Activitat Física i l'Esport.</div>`;
   return "";

@@ -1,6 +1,6 @@
 /* NEXFORM · lògica de l'app (abans dins index.html; separat el 2026-11-10 perquè la CSP no hagi de permetre scripts integrats) */
 const MUSCLES=["Pit","Esquena","Espatlles","Bíceps","Tríceps","Quàdriceps","Isquiotibials","Glutis","Bessons","Abdominals","Avantbraç","Altres"];
-const VIEWS=["avui","pes","progres","setmana","any","nutricio","informes","clients","resum","rutines","pauta","fitxa","cos","guia"];
+const VIEWS=["avui","pes","progres","setmana","any","nutricio","informes","clients","resum","rutines","pauta","fitxa","valoracio","cos","guia"];
 const ALIAS={registre:"avui",historial:"setmana"};
 const $=s=>document.querySelector(s);
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -71,7 +71,7 @@ setInterval(()=>{ if(pend.length) flushPend(); else if(draftPending&&(draft.star
 const inWorkout=()=>!!(draft.startedAt||draft.id);
 
 const exById=id=>S.exercises.find(e=>e.id===id);
-const tplsSorted=()=>[...S.templates].sort((a,b)=>(a.order||0)-(b.order||0));
+const tplsSorted=()=>(typeof draftHidden==="function"&&draftHidden())?[]:[...S.templates].sort((a,b)=>(a.order||0)-(b.order||0));
 const sessionsSorted=()=>[...S.sessions].sort((a,b)=>(b.date||"").localeCompare(a.date||"")||(b.updatedAt||"").localeCompare(a.updatedAt||""));
 function historyFor(exId,excludeId,n){const out=[];for(const s of sessionsSorted()){if(s.id===excludeId)continue;const it=(s.items||[]).find(i=>i.exId===exId);if(it){out.push({id:s.id,date:s.date,sets:it.sets||[]});if(out.length>=n)break}}return out}
 const lastFor=(exId,excludeId)=>historyFor(exId,excludeId,1)[0]||null;
@@ -145,9 +145,9 @@ function render(){
   dirty=false;
   renderTop();
   const wo=cur==="avui"&&inWorkout()&&!lastSaved;
-  const firstIntake=cur==="fitxa"&&typeof intakeDoc==="function"&&IS_CLIENT()&&!intakeDoc();
+  const firstIntake=(cur==="fitxa"||cur==="valoracio")&&typeof intakeDoc==="function"&&IS_CLIENT()&&!intakeDoc()||cur==="valoracio"&&IS_CLIENT();
   $("#tabs").hidden=wo||firstIntake; $("#wobar").hidden=!wo;
-  ({avui:renderAvui,pes:renderPes,progres:renderProgres,setmana:renderSetmana,any:renderAny,nutricio:renderNutricio,informes:renderInformes,clients:renderClients,resum:renderResum,rutines:renderRutines,pauta:renderPauta,fitxa:renderFitxa,cos:renderCos,guia:renderGuia})[cur]();
+  ({avui:renderAvui,pes:renderPes,progres:renderProgres,setmana:renderSetmana,any:renderAny,nutricio:renderNutricio,informes:renderInformes,clients:renderClients,resum:renderResum,rutines:renderRutines,pauta:renderPauta,fitxa:renderFitxa,valoracio:renderValoracio,cos:renderCos,guia:renderGuia})[cur]();
   tick();
 }
 document.querySelector("main").addEventListener("focusout",()=>setTimeout(()=>{ if(dirty&&!$("#v-"+cur).contains(document.activeElement)) render(); },0));
@@ -746,7 +746,7 @@ const EQ={
  fat:{t:"Greixos",rows:[["Oli d'oliva",1],["Alvocat",6.5],["Guacamole",6.5],["Olives",6.11],["Fruits secs (+ P)",1.6],["Llavors (+ P)",1.6],["Rovell d'ou",3.2],["Coco fresc (+ HC)",2.4],["Crema de cacauet (+ P)",1.55],["Xocolata 75 % (+ HC)",1.6],["Hummus (+ HC + P)",4],["Emmental / parmesà",3.7],["Llet semidesnatada",18],["Gaspatxo (ml)",19]]},
  fruit:{t:"Fruita",rows:[["Poma",1],["Pera",.911],["Kiwi",.839],["Pinya",1.044],["Maduixa",1.578],["Raïm",.767],["Plàtan",.494],["Meló",1.517],["Síndria",1.683],["Cireres",1.044],["Gerds",.972],["Figues",.706],["Mango",.856],["Préssec",1.317],["Nectarina",1.161],["Nabius",1.089]]}};
 let eqItem=null;
-const pautes=()=>[...S.nutrition].filter(x=>x.from).sort((a,b)=>a.from.localeCompare(b.from));
+const pautes=()=>(typeof draftHidden==="function"&&draftHidden())?[]:[...S.nutrition].filter(x=>x.from).sort((a,b)=>a.from.localeCompare(b.from));
 function activePauta(){const t=todayISO(),l=pautes();let a=null;l.forEach(x=>{if(x.from<=t)a=x});return a||l[0]||null}
 function nextPauta(){const t=todayISO();return pautes().find(x=>x.from>t)||null}
 let nutShow=null;
@@ -839,7 +839,7 @@ if(window.QStore) QStore.on("_view",()=>{ lastSaved=null; progEx=null; nutShow=n
   const sub=(col,order)=>{let q=db.collection(col); if(order) q=q.orderBy(order[0],order[1]);
     q.onSnapshot(snap=>{S[col]=snap.docs.map(d=>({id:d.id,...d.data()})); mergePend(col);
       if(!snap.metadata.fromCache){ready[col]=true; if(Object.values(ready).every(Boolean)){clearTimeout(timer);setStatus("")}}
-      if(col==="intake"&&needIntake()&&cur!=="fitxa"){location.hash="fitxa";return}
+      if(col==="intake"&&needIntake()&&cur!=="valoracio"){location.hash="valoracio";return}
       if(sheetKind) return; render();},
     err=>{clearTimeout(timer);setStatus("No s'han pogut carregar les dades ("+col+"): "+err.message)});};
   restoreDraft(); flushPend();

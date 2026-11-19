@@ -375,6 +375,54 @@ body.cv .card:has(#b-kg){display:none}
 body.cv [data-go],body.cv [data-act],body.cv [data-bwdel],body.cv #lb-change{display:none}
 body.cv .top .brand{font-size:18px}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+/* Valoració inicial (valoracio.js): una pregunta per diapositiva */
+#v-valoracio{display:flex;flex-direction:column;gap:14px;min-height:calc(100dvh - 120px)}
+.vtop{display:flex;flex-direction:column;gap:10px}
+.vrow{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:36px}
+.vback{background:none;border:0;color:var(--muted);font-weight:600;padding:6px 0;font-size:15px;height:auto}
+.vback[disabled]{visibility:hidden}
+.vblk{font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}.vblk b{color:var(--fg)}
+.vsegs{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.vseg{height:5px;border-radius:3px;background:var(--line);overflow:hidden}.vseg i{display:block;height:100%;background:var(--grad);transition:width .35s ease}
+.vqn{font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
+.vslide{flex:1;display:flex;flex-direction:column;gap:18px;padding-top:14px;animation:vin .3s ease both}.vslide.rev{animation-name:vinr}
+@keyframes vin{from{opacity:0;transform:translateX(24px)}to{opacity:1;transform:none}}@keyframes vinr{from{opacity:0;transform:translateX(-24px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.vslide{animation:none}.vseg i{transition:none}}
+.vq{font-size:clamp(24px,6.4vw,30px);line-height:1.15;letter-spacing:-.02em;margin:0;text-wrap:balance;font-weight:800}
+.vbig{font-size:clamp(30px,8vw,40px);line-height:1.1;letter-spacing:-.02em;margin:0;font-weight:800;text-wrap:balance}
+.vhelp{color:var(--muted);margin:-6px 0 0;font-size:15px}
+.vbadge{align-self:flex-start;padding:6px 12px;border-radius:999px;background:var(--accent-soft);color:var(--accent);font-weight:800;font-size:13px}
+.vopts{display:flex;flex-direction:column;gap:10px}
+.vopt{display:flex;align-items:center;gap:12px;text-align:left;width:100%;min-height:56px;height:auto;padding:14px 16px;border-radius:16px;background:var(--surface);border:1.5px solid var(--line);font-size:16px;font-weight:600;color:var(--fg)}
+.vopt[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft)}
+.vopt .k{flex:none;width:26px;height:26px;border-radius:50%;border:1.5px solid var(--line);display:grid;place-items:center;font-size:13px;font-weight:800;color:var(--muted)}
+.vopt[aria-pressed="true"] .k{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.vopt small{display:block;font-weight:500;color:var(--muted);font-size:13px;margin-top:2px}
+.vopt.unk{background:transparent;border-style:dashed;color:var(--muted)}.vopt.unk[aria-pressed="true"]{color:var(--fg);border-style:solid}
+.vchips{display:flex;flex-wrap:wrap;gap:8px}
+.vchip{padding:11px 15px;height:auto;border-radius:999px;background:var(--surface);border:1.5px solid var(--line);font-weight:600;font-size:15px;color:var(--fg)}
+.vchip[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft)}
+.vfield{display:flex;align-items:center;gap:10px;background:var(--surface);border:1.5px solid var(--line);border-radius:16px;padding:0 16px}
+.vfield:focus-within{border-color:var(--accent)}
+.vfield input{flex:1;min-width:0;background:none;border:0;color:var(--fg);font:inherit;font-size:22px;font-weight:700;padding:16px 0;outline:none;height:auto}
+.vfield .u{color:var(--muted);font-weight:700}
+.vta{width:100%;min-height:120px;background:var(--surface);border:1.5px solid var(--line);border-radius:16px;color:var(--fg);font:inherit;padding:14px 16px}
+.vscale{display:grid;gap:8px}.vscale .row{display:grid;gap:6px}
+.vscale button{height:54px;border-radius:14px;background:var(--surface);border:1.5px solid var(--line);font-weight:800;font-size:18px;color:var(--fg)}
+.vscale button[aria-pressed="true"]{background:var(--grad);border-color:transparent;color:var(--accent-ink)}
+.vscale .ends{display:flex;justify-content:space-between;color:var(--muted);font-size:13px}
+.vfoot{display:flex;flex-direction:column;gap:10px;margin-top:auto;padding-top:8px}
+.vcta{height:56px;border-radius:16px;border:0;background:var(--cta,var(--grad));color:var(--cta-ink,var(--accent-ink));font-weight:800;font-size:17px;width:100%}
+.vcta[disabled]{opacity:.5}
+.vmsg{color:var(--bad);font-size:14px;min-height:20px;margin:0}
+.vkv{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:6px 12px;font-size:14px;margin:0}.vkv dt{color:var(--muted)}.vkv dd{margin:0;font-weight:600;overflow-wrap:anywhere}
+.vdone{justify-content:center}
+.vok{width:72px;height:72px;border-radius:24px;background:var(--grad);display:grid;place-items:center}
+.vok svg{width:38px;height:38px;stroke:var(--accent-ink);stroke-width:3;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.vsteps{margin:0;padding-left:22px;display:flex;flex-direction:column;gap:6px}
+.vln{display:flex;gap:8px;align-items:flex-start;font-size:14px}.vln>span:last-child{min-width:0}
+.vtag{flex:none;font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;padding:3px 7px;border-radius:6px;margin-top:2px}
+.v-d{background:var(--raise);color:var(--fg)}.v-i{background:var(--accent-soft);color:var(--accent)}.v-f{background:var(--warn-soft);color:var(--warn)}
 </style>
 
 <div class="wrap">
@@ -394,6 +442,7 @@ body.cv .top .brand{font-size:18px}
     <section id="v-rutines" hidden></section>
     <section id="v-pauta" hidden></section>
     <section id="v-fitxa" hidden></section>
+    <section id="v-valoracio" hidden></section>
     <section id="v-cos" hidden></section>
     <section id="v-guia" hidden></section>
   </main>
@@ -441,6 +490,7 @@ button.go{font-family:var(--body)!important;text-transform:none!important;letter
 </style>
 <script src="vendor/chart-4.4.1.umd.js"></script>
 <script src="coach.js"></script>
+<script src="valoracio.js"></script>
 <script src="exphotos.js"></script>
 <script src="jo.js"></script>
 <script src="engage.js"></script>

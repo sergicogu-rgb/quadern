@@ -14,6 +14,9 @@
   const CLIENT_COLS=["sessions","bodyweight","kcallog","drafts","intake","checkins","body"];
   const COACH_COLS=["exercises","templates","targets","programs","nutrition","reports"];
   const CONSENT_VERSION="v3-2026-11";
+  /* Pantalla de consentiment (dades de salut + IA): DESACTIVADA de moment per decisió de l'entrenador (2026-11-19).
+     El codi es queda sencer: per tornar-la a activar, posa true aquí i també a public.consent_required() (Supabase). */
+  const CONSENT_ON=false;
   const AI={name:"ELION",full:"ELION, l'AI Performance Coach de NEXFORM",provider:"Claude, d'Anthropic PBC"};
   const APP_NAME="NEXFORM";
   const LOGO='<svg class="nxlogo" viewBox="0 0 470 100" role="img" aria-label="NEXFORM"><g style="fill:var(--logo-n)"><rect x="18" y="20" width="16" height="60"/><polygon points="18,20 34,20 82,80 66,80"/><rect x="66" y="44" width="16" height="36"/></g><rect x="66" y="14" width="16" height="16" style="fill:var(--logo-s)"/><g transform="translate(118 26)" fill="none" stroke="currentColor" stroke-width="9" stroke-linejoin="miter"><path d="M4.5 0V48M35.5 0V48M4.5 3L35.5 45"/><path transform="translate(52)" d="M40 4.5H0M4.5 0V48M40 43.5H0M4.5 24H34"/><path transform="translate(104)" d="M4.8 2.6L35.2 45.4M35.2 2.6L4.8 45.4"/><path transform="translate(156)" d="M40 4.5H0M4.5 0V48M4.5 24H34"/><rect transform="translate(208)" x="4.5" y="4.5" width="31" height="39" rx="15.5"/><path transform="translate(260)" d="M4.5 48V4.5H23A10.75 10.75 0 0 1 23 26H4.5M20 26L35 44.5"/><path transform="translate(312)" d="M4.5 48V0M35.5 48V0M4.5 4L20 30L35.5 4"/></g></svg>'; window.NX_LOGO=LOGO;
@@ -211,7 +214,7 @@
   function gate(){
     const p=Q.profile; if(!p||p.role==="coach") return false;
     if(!p.coach_id){showNoCoach();return true}
-    if(!Q.consent||!Q.consent.ai){showConsent(false);return true}
+    if(CONSENT_ON&&(!Q.consent||!Q.consent.ai)){showConsent(false);return true}
     return false;
   }
   window.qapp={use:async n=>n==="db"?dbReady:n==="assets"?assets:null};
@@ -322,6 +325,7 @@
       }catch(e){msg("No s'ha pogut desar: "+e.message);$i("cs-go").disabled=false}};
   }
   Q.editConsent=()=>showConsent(true);
+  Q.consentOn=CONSENT_ON;
   Q.deleteAccount=async()=>{await Q.fn({action:"delete_account"}); await sb.auth.signOut().catch(()=>{}); localStorage.clear(); location.replace(APP_URL)};
   function hideLogin(){const el=document.getElementById("login");if(el)el.hidden=true}
   Q.signOut=async()=>{await flush();if(sb)await sb.auth.signOut();
