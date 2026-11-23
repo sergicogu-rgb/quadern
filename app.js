@@ -161,7 +161,7 @@ function renderTop(){
       <button class="pos" id="t-list" aria-label="Llista d'exercicis">${n?i+1:0} / ${n}</button>
       <button class="fin ${draft.id?"primary":""}" id="t-fin">${draft.id?"Desar":"Finalitzar"}</button></div>`;
   } else {
-    t.innerHTML=`<span class="brand">${window.NX_LOGO||"NEXFORM"} <i>coached by ELION</i></span><span style="display:flex;align-items:center;gap:2px">${IS_COACH()?`<button class="plain" id="t-clients" aria-label="Clients" style="font-size:15px;font-weight:700;padding:4px 8px;color:var(--accent)">Clients</button>`:""}<button class="plain" id="t-acc" aria-label="Compte i dades" style="font-size:20px;padding:4px 8px">⚙︎</button></span>`;
+    t.innerHTML=`<span class="brand">${window.NX_LOGO||"NEXFORM"} <i>coached by ${(window.QStore||{}).aiOn?"ELION":"Sergi"}</i></span><span style="display:flex;align-items:center;gap:2px">${IS_COACH()?`<button class="plain" id="t-clients" aria-label="Clients" style="font-size:15px;font-weight:700;padding:4px 8px;color:var(--accent)">Clients</button>`:""}<button class="plain" id="t-acc" aria-label="Compte i dades" style="font-size:20px;padding:4px 8px">⚙︎</button></span>`;
   }
 }
 $("#top").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;

@@ -199,7 +199,7 @@ function welcomeReport(){
     ${sec("⚖️","Pes","Pesa't cada matí en dejú, després d'anar al lavabo. Compta la mitjana de la setmana, no el número d'un dia.")}
     ${sec("🍽️","Menjar","Hi tens la pauta amb els àpats i les equivalències de cada aliment. Segueix-la cada dia: l'entrenador l'ajusta segons l'evolució del teu pes.")}
     ${sec("📊","Progrés, Setmana i Any","El 1RM estimat de cada exercici, la teva setmana i la constància de tot l'any.")}
-    ${sec("📝","Informes","Aquí tens el resum automàtic de cada setmana i els informes del teu entrenador. "+esc(ai)+", l'entrenador IA, analitza les teves dades i proposa ajustos; el teu entrenador els revisa sempre abans que t'arribin.")}
+    ${sec("📝","Informes","Aquí tens el resum automàtic de cada setmana i els informes del teu entrenador."+((window.QStore||{}).aiOn?" "+esc(ai)+", l'entrenador IA, analitza les teves dades i proposa ajustos; el teu entrenador els revisa sempre abans que t'arribin.":""))}
     ${sec("⚙︎","Ajustos","Activa les notificacions i afegeix l'app a la pantalla d'inici. Des d'aquí també pots descarregar o esborrar les teves dades.")}
     ${(planDoc()||{}).status==="provisional"?`<div class="note" style="margin:0">Els primers dies la rutina i la pauta són <b>provisionals</b>: les ha preparat l'app amb la teva fitxa i el teu entrenador les revisa en menys de 24 h.</div>`:""}
   </article>`;
