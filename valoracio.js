@@ -257,8 +257,9 @@ function vReview(){
     ${VBLOCKS.map(([k,l])=>{const qs=list.filter(q=>q.b===k); if(!qs.length) return "";
       return `<div class="card stack" style="gap:8px"><div style="display:flex;justify-content:space-between;align-items:center"><b>${esc(VT(l))}</b><button type="button" class="plain" data-ve="${qs[0].id}" style="color:var(--accent);font-weight:700">${VT("Edita")}</button></div>
         <dl class="vkv">${qs.map(q=>`<dt>${esc(VT(q.q))}</dt><dd>${esc(vFmt(q,VA[q.id]))}${q.req&&vEmpty(VA[q.id])?` <button type="button" class="plain" data-ve="${q.id}" style="color:var(--bad);font-weight:700;padding:0">${VT("Respon")}</button>`:""}</dd>`).join("")}</dl></div>`}).join("")}
+    ${window.vConsentBlock?window.vConsentBlock():""}
     <div class="vfoot">${miss.length?`<p class="vmsg">${miss.length} ${VT("respostes obligatòries per respondre.")}</p>`:""}<p class="vmsg" id="v-err"></p>
-      <button type="button" class="vcta" id="v-send" ${miss.length||vBusy?"disabled":""}>${vBusy?VT("Enviant…"):VT("Enviar la valoració")}</button></div></section>`;
+      <button type="button" class="vcta" id="v-send" ${miss.length||vBusy||(window.vConsentOk&&!window.vConsentOk())?"disabled":""} data-miss="${miss.length}">${vBusy?VT("Enviant…"):VT("Enviar la valoració")}</button></div></section>`;
 }
 function vDone(){
   const n=String(VA.name||"").trim().split(" ")[0];
