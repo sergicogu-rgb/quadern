@@ -213,6 +213,17 @@ i.done{background:var(--good)} i.plan{border:2px solid var(--accent)} i.miss{bac
 .rest .l{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;opacity:.7}
 .rest button{white-space:nowrap;background:transparent;color:inherit;border-color:currentColor;padding:7px 11px;border-radius:999px;font-size:14px}
 .rest.end{background:var(--good);color:var(--good-ink)}
+.rest button.snd{padding:7px 9px;border-color:transparent}
+.rest.soon{animation:restsoon .5s ease-in-out infinite alternate}
+@keyframes restsoon{to{background:var(--accent);color:var(--accent-ink)}}
+.rest-go{position:fixed;inset:0;z-index:40;display:grid;place-items:center;background:var(--good);color:var(--good-ink);cursor:pointer;animation:rgflash .8s ease-in-out 4}
+.rest-go[hidden]{display:none}
+.rest-go .rg-in{display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center;padding:24px}
+.rest-go .rg-l{font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;opacity:.8}
+.rest-go b{font-family:var(--display);font-size:clamp(48px,16vw,80px);font-weight:800;line-height:1}
+.rest-go .rg-n{font-size:22px;font-weight:700}
+.rest-go .rg-btn{margin-top:18px;background:var(--good-ink);color:var(--good);border:0;padding:14px 36px;border-radius:999px;font-size:18px;font-weight:800}
+@keyframes rgflash{50%{filter:brightness(1.3)}}
 
 .cmp{grid-column:1/-1;display:flex;align-items:center;gap:8px;font-size:14px;font-weight:600;padding:2px 2px 0 48px;color:var(--muted)}
 .cmp.up{color:var(--good)} .cmp.down{color:var(--bad)}

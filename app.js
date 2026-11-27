@@ -331,7 +331,7 @@ async function woClick(e,b){
     case "chk":{ const s=it.sets[j]; unlockAudio();
       if(!s.done&&(num(s.kg)==null||num(s.reps)==null)){toast("Posa kg i reps abans de marcar");return}
       s.done=!s.done; s.t=false; draft.touched=true; lastChk=s.done?{i:draft.cur,j}:null;
-      if(s.done){ const last=draft.cur===draft.items.length-1&&it.sets.every(x=>x.done); if(!last) startRest(c.rng(j).max<=5?150:restDefault()); }
+      if(s.done){ const last=draft.cur===draft.items.length-1&&it.sets.every(x=>x.done); if(!last) startRest(c.rng(j).max<=5?150:restDefault(),it.sets.every(x=>x.done)); }
       break }
     case "addset":{ const l=it.sets[it.sets.length-1]||{}; it.sets.push({kg:l.kg??"",reps:l.reps??"",rir:0,done:false,t:true}); break }
     case "rmset": it.sets.pop(); break;
@@ -350,14 +350,26 @@ $("#wobar").addEventListener("click",e=>{const b=e.target.closest("button");if(!
 
 /* descans */
 const restDefault=()=>LS.get("rest",120);
-function startRest(sec){ draft.restEnd=Date.now()+sec*1000; draft.restBeeped=false; saveDraft(); }
+/* Alarma de final de descans (2026-11-27, VSCOMA_07): compte enrere 3-2-1, alarma de ~2 s, vibració,
+   pantalla verda fins que es toca (màx. 15 s), avís en tornar a l'app si ha acabat en segon pla (fins a 5 min)
+   i notificació si l'app és en segon pla i hi ha permís. restBeeped = moment en què ha sonat (o false). */
+const soundOn=()=>LS.get("restSound",true);
+function startRest(sec,nextEx){ draft.restEnd=Date.now()+sec*1000; draft.restBeeped=false; draft.restNext=nextEx?"ex":"set"; draft.restCd=0; saveDraft(); }
+function endRest(){ draft.restEnd=null; draft.restBeeped=false; saveDraft(); tick(); }
 $("#rest").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;
-  if(b.dataset.r==="add"){draft.restEnd=Math.max(Date.now(),draft.restEnd||0)+15000;draft.restBeeped=false}
-  else {draft.restEnd=null}
-  saveDraft(); tick();});
+  if(b.dataset.r==="snd"){ LS.set("restSound",!soundOn()); if(soundOn()){unlockAudio();cdBeep()} tick(); return }
+  if(b.dataset.r==="add"){draft.restEnd=Math.max(Date.now(),draft.restEnd||0)+15000;draft.restBeeped=false;draft.restCd=0;saveDraft();tick();return}
+  endRest();});
+$("#restgo").addEventListener("click",()=>{unlockAudio();endRest()});
 let actx=null;
 function unlockAudio(){try{if(!actx){const A=window.AudioContext||window.webkitAudioContext;if(A)actx=new A()} if(actx&&actx.state==="suspended")actx.resume()}catch(e){}}
-function beep(){try{if(!actx)return;[0,.28].forEach(o=>{const os=actx.createOscillator(),g=actx.createGain();os.frequency.value=880;os.connect(g);g.connect(actx.destination);const t=actx.currentTime+o;g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(.35,t+.02);g.gain.exponentialRampToValueAtTime(.0001,t+.22);os.start(t);os.stop(t+.24)})}catch(e){} try{navigator.vibrate&&navigator.vibrate([200,100,200])}catch(e){}}
+function tone(f,at,dur,vol){const os=actx.createOscillator(),g=actx.createGain();os.frequency.value=f;os.connect(g);g.connect(actx.destination);const t=actx.currentTime+at;g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(vol,t+.02);g.gain.exponentialRampToValueAtTime(.0001,t+dur);os.start(t);os.stop(t+dur+.02)}
+function snd(fn){ if(!soundOn())return; try{ if(!actx)unlockAudio(); if(!actx)return; if(actx.state!=="running")actx.resume(); fn() }catch(e){} }
+function vib(p){try{navigator.vibrate&&navigator.vibrate(p)}catch(e){}}
+function cdBeep(){ snd(()=>tone(660,0,.12,.25)); vib(60) }
+function alarm(){ snd(()=>[0,.7,1.4].forEach(o=>{tone(660,o,.18,.5);tone(880,o+.2,.18,.5);tone(1175,o+.4,.26,.55)})); vib([400,150,400,150,600]) }
+function bgNotify(){try{ if(document.visibilityState!=="hidden"||!("Notification" in window)||Notification.permission!=="granted"||!navigator.serviceWorker) return;
+  navigator.serviceWorker.ready.then(r=>r.showNotification("Descans acabat",{body:draft.restNext==="ex"?"Endavant: exercici següent":"Endavant: sèrie següent",tag:"rest",renotify:true,vibrate:[400,150,400],icon:"icon-192.png",data:{url:"./#avui"}})).catch(()=>{}) }catch(e){}}
 let wl=null; async function wake(){try{if(navigator.wakeLock&&inWorkout()&&!wl){wl=await navigator.wakeLock.request("screen");wl.addEventListener("release",()=>{wl=null})}}catch(e){}}
 function unwake(){try{wl&&wl.release()}catch(e){} wl=null}
 document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"&&draft.startedAt)wake()});
@@ -809,13 +821,22 @@ function renderInformes(){
 /* ---------- RELLOTGE I ARRENCADA ---------- */
 function tick(){
   if(draft.startedAt&&!draft.id){const t=fmtClock((Date.now()-Date.parse(draft.startedAt))/1000);["#clk","#clk2","#clk3"].forEach(s=>{const e=$(s);if(e)e.textContent=t})}
-  const r=$("#rest"), show=cur==="avui"&&inWorkout()&&!lastSaved&&draft.restEnd;
-  if(!show){r.hidden=true;return}
-  const left=(draft.restEnd-Date.now())/1000;
-  if(left<=-8){draft.restEnd=null;saveDraft();r.hidden=true;return}
-  if(left<=0){ if(!draft.restBeeped){draft.restBeeped=true;saveDraft();beep()}
-    r.className="rest end"; r.innerHTML=`<span><span class="l">Descans</span><br><span class="t">Endavant!</span></span><button data-r="skip">Tancar</button>`; }
-  else { r.className="rest"; r.innerHTML=`<span><span class="l">Descans</span><br><span class="t">${fmtRest(left)}</span></span><button data-r="add">+15 s</button><button data-r="skip">Saltar</button>`; }
+  const r=$("#rest"), g=$("#restgo"), show=cur==="avui"&&inWorkout()&&!lastSaved&&draft.restEnd;
+  if(!show){r.hidden=true;g.hidden=true;return}
+  const now=Date.now(), left=(draft.restEnd-now)/1000;
+  if(left<=0){
+    if(!draft.restBeeped){
+      if(-left>300){draft.restEnd=null;saveDraft();r.hidden=true;g.hidden=true;return}
+      draft.restBeeped=now; saveDraft(); alarm(); bgNotify(); }
+    if(now-draft.restBeeped>15000){endRest();return}
+    r.hidden=true;
+    if(g.hidden){ g.innerHTML=`<div class="rg-in"><span class="rg-l">Descans acabat</span><b>Endavant!</b><span class="rg-n">${draft.restNext==="ex"?"Exercici següent":"Sèrie següent"}</span><button type="button" class="rg-btn">Som-hi</button></div>`; g.hidden=false; }
+    return; }
+  g.hidden=true;
+  const s=Math.ceil(left);
+  if(s<=3&&draft.restCd!==s){draft.restCd=s;cdBeep()}
+  r.className="rest"+(s<=3?" soon":"");
+  r.innerHTML=`<span><span class="l">Descans</span><br><span class="t">${fmtRest(left)}</span></span><button data-r="add">+15 s</button><button data-r="skip">Saltar</button><button data-r="snd" class="snd" aria-label="${soundOn()?"Silenciar l'alarma":"Activar el so de l'alarma"}" aria-pressed="${soundOn()?"false":"true"}">${soundOn()?"🔔":"🔕"}</button>`;
   r.hidden=false;
 }
 setInterval(tick,500);
