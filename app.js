@@ -161,7 +161,7 @@ function renderTop(){
       <button class="pos" id="t-list" aria-label="Llista d'exercicis">${n?i+1:0} / ${n}</button>
       <button class="fin ${draft.id?"primary":""}" id="t-fin">${draft.id?"Desar":"Finalitzar"}</button></div>`;
   } else {
-    t.innerHTML=`<span class="brand">${window.NX_LOGO||"NEXFORM"} <i>coached by ${(window.QStore||{}).aiOn?"ELION":"Sergi"}</i></span><span style="display:flex;align-items:center;gap:2px">${IS_COACH()?`<button class="plain" id="t-clients" aria-label="Clients" style="font-size:15px;font-weight:700;padding:4px 8px;color:var(--accent)">Clients</button>`:""}<button class="plain" id="t-acc" aria-label="Compte i dades" style="font-size:20px;padding:4px 8px">⚙︎</button></span>`;
+    t.innerHTML=`<span class="brand">${window.NX_LOGO||"NEXFORM"} <i>coached by ${(window.QStore||{}).aiOn?"ELION":"Sergi"}</i></span><span style="display:flex;align-items:center;gap:2px">${IS_COACH()?(()=>{const n=typeof naPending==="function"?naPending().length:0; return `<button class="plain" id="t-clients" aria-label="Clients${n?", "+n+" valoracions noves":""}" style="font-size:15px;font-weight:700;padding:4px 8px;color:var(--accent);position:relative">Clients${n?`<span style="position:absolute;top:-4px;right:-4px;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:var(--bad);color:#fff;font-size:11px;line-height:18px;text-align:center">${n}</span>`:""}</button>`})():""}<button class="plain" id="t-acc" aria-label="Compte i dades" style="font-size:20px;padding:4px 8px">⚙︎</button></span>`;
   }
 }
 $("#top").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;
@@ -220,7 +220,7 @@ function renderAvui(){
   const el=$("#v-avui"); autoLoad();
   const today=todayISO(), tpls=tplsSorted(), tp=tpls.find(t=>t.id===draft.templateId);
   const doneToday=S.sessions.filter(s=>s.date===today);
-  let h=`<div class="hello"><span class="lbl">${esc(dayLabel())}${doneToday.length?" · propera sessió":""}</span><h1>${typeof greetHTML==="function"?greetHTML():(doneToday.length?"Propera sessió":"Avui toca")}</h1></div><div class="stack">${typeof avuiTop==="function"?avuiTop():""}${typeof evoCard==="function"?evoCard():""}${typeof planBanner==="function"?planBanner():""}`;
+  let h=`<div class="hello"><span class="lbl">${esc(dayLabel())}${doneToday.length?" · propera sessió":""}</span><h1>${typeof greetHTML==="function"?greetHTML():(doneToday.length?"Propera sessió":"Avui toca")}</h1></div><div class="stack">${typeof avuiTop==="function"?avuiTop():""}${typeof naBanner==="function"?naBanner():""}${typeof evoCard==="function"?evoCard():""}${typeof planBanner==="function"?planBanner():""}`;
   doneToday.forEach(s=>{h+=`<div class="done-banner"><span class="ok">✓</span><div><b>${esc(s.name)}</b><div class="sub">Feta avui${s.durationSec?" · "+fmtDur(s.durationSec):""} · ${fn(vol((s.items||[]).flatMap(i=>i.sets))/1000,1)} t</div></div><button data-share-s="${esc(s.id)}" style="margin-left:auto;flex-shrink:0">📤 Story</button></div>`});
   const rest=!doneToday.length&&tpls.length&&!(draft.manual&&draft.date===today)&&isRestDay(today);
   if(!ready.templates&&!tpls.length) h+=`<div class="empty"><b>Carregant…</b>Un moment, s'estan llegint les teves rutines.</div>`;

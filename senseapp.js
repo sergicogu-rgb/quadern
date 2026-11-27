@@ -19,8 +19,25 @@ async function naLoad() {
     if (r.error) throw r.error;
     naLinks = l.data || []; naResp = r.data || []; naErr = null;
   } catch (e) { naErr = e.message; naLinks = naLinks || []; }
-  naBusy = false; if (cur === "clients") render();
+  naBusy = false;
+  const n = naPending().length, changed = n !== naSeenN; naSeenN = n;
+  if (cur === "clients" || (changed && IS_COACH() && !CV())) render();
 }
+
+/* Avís a l'entrenador (2026-11-26, CLIENTS_04): valoracions rebudes amb la rutina encara per fer (sense «PDF enviat»).
+   Es carreguen en obrir l'app i cada cop que torna a primer pla; surten com a bombolla a «Clients» i targeta a l'inici. */
+let naSeenN = -1;
+const naPending = () => { if (naLinks == null && !naErr && IS_COACH()) naLoad(); return naResp.filter(r => r.status !== "enviada"); };
+function naBanner() {
+  if (!IS_COACH() || CV()) return "";
+  const p = naPending(); if (!p.length) return "";
+  return `<a href="#clients" class="card stack" style="gap:6px;text-decoration:none;color:inherit;border:1.5px solid var(--warn)">
+    <span class="lbl" style="color:var(--warn)">📋 ${p.length === 1 ? "Valoració nova · rutina per fer" : p.length + " valoracions noves · rutines per fer"}</span>
+    ${p.slice(0, 4).map(r => `<div style="display:flex;justify-content:space-between;gap:8px"><b>${esc(r.name || "Sense nom")}</b><span class="sub" style="font-size:13px">${esc(ago(r.created_at))}${(r.data || {}).parqAlert ? " · ⚠️ Salut: revisar" : ""}</span></div>`).join("")}
+    <span class="sub" style="font-size:13px">Toca per veure-les a Clients →</span></a>`;
+}
+function naWatch() { if (IS_COACH()) naLoad(); }
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") naWatch(); });
 
 function noAppCard() {
   if (!IS_COACH()) return "";
