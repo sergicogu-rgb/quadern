@@ -1,6 +1,6 @@
 /* NEXFORM · funciona sense connexió: guarda l'app i les llibreries al mòbil */
-const V="quadern-v40";
-const CORE=["./","index.html","store.js","coach.js","valoracio.js","senseapp.js","app.css","engage.js","evolution.js","exphotos.js","jo.js","app.js","manifest.webmanifest","icon-192.png","icon-512.png","apple-touch-icon.png",
+const V="quadern-v41";
+const CORE=["./","index.html","store.js","coach.js","valoracio.js","senseapp.js","app.css","engage.js","evolution.js","exphotos.js","jo.js","splash.js","app.js","manifest.webmanifest","icon-192.png","icon-512.png","apple-touch-icon.png",
  "vendor/supabase-2.45.4.js","vendor/chart-4.4.1.umd.js"];
 self.addEventListener("install",e=>{e.waitUntil(caches.open(V).then(c=>Promise.all(CORE.map(u=>c.add(u).catch(()=>{})))).then(()=>self.skipWaiting()))});
 self.addEventListener("activate",e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==V).map(k=>caches.delete(k)))).then(()=>self.clients.claim()))});
@@ -10,8 +10,10 @@ self.addEventListener("fetch",e=>{
   if(u.hostname.endsWith("supabase.co")) return;              // dades: sempre a la xarxa
   const own=u.origin===location.origin;
   if(own&&(r.mode==="navigate"||/\.(html|js|css|webmanifest)$/.test(u.pathname))){
-    // app: primer la xarxa (per rebre actualitzacions), si no hi ha connexió la còpia guardada
-    e.respondWith(fetch(r,{cache:"no-cache"}).then(res=>{const c=res.clone();caches.open(V).then(x=>x.put(r,c));return res}).catch(()=>caches.match(r).then(m=>m||caches.match("index.html"))));
+    // app (2026-11-27): la còpia guardada a l'instant i, al darrere, la versió nova per a la propera obertura.
+    // Sense còpia (primera vegada), la xarxa. Abans era primer la xarxa i amb mala cobertura l'app trigava a obrir-se.
+    const net=fetch(r,{cache:"no-cache"}).then(res=>{if(res.ok){const c=res.clone();caches.open(V).then(x=>x.put(r,c))}return res});
+    e.respondWith(caches.match(r).then(m=>{ if(m){e.waitUntil(net.catch(()=>{}));return m} return net.catch(()=>caches.match("index.html")) }));
     return;
   }
   // llibreries, fonts i imatges: la còpia guardada primer

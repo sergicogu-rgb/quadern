@@ -173,11 +173,20 @@ const liveBanner=()=>draft.startedAt&&!draft.id?`<a href="#avui" class="live" st
    (1a, 2a, 3a, 4a en l'ordre de les rutines). Una sessió no feta NO es passa a la setmana següent. */
 const PLAN_DAYS=[0,1,3,4];
 function tplForDate(d,tpls){const k=PLAN_DAYS.indexOf((dt(d).getDay()+6)%7); return k<0||!tpls.length?null:tpls[k%tpls.length]}
+/* Setmana en curs (2026-11-27, VSCOMA_07): rutines previstes (les dels dies pautats) i fetes, per marcar-les
+   i, si avui toca una rutina ja feta perquè s'ha canviat l'ordre, proposar la primera pendent. */
+function weekRoutines(tpls){
+  const ws=weekStart(todayISO()), we=addDays(ws,6);
+  const done=new Set(S.sessions.filter(s=>s.date>=ws&&s.date<=we).map(s=>s.templateId).filter(Boolean));
+  const due=[]; PLAN_DAYS.forEach(i=>{const t=tplForDate(addDays(ws,i),tpls); if(t&&!due.includes(t)) due.push(t)});
+  return {done,due,pending:due.filter(t=>!done.has(t.id))};
+}
 function nextTemplate(tpls,recover){
   if(!tpls.length) return null;
   const today=todayISO();
   if(!S.sessions.some(s=>s.date===today)){
-    const t=tplForDate(today,tpls); if(t) return t;
+    const t=tplForDate(today,tpls);
+    if(t){ const w=weekRoutines(tpls); return w.done.has(t.id)&&w.pending.length?w.pending[0]:t }
     if(recover){ // dia no pautat ("Entrenar igualment"): recupera una rutina d'aquesta mateixa setmana encara no feta
     const ws=weekStart(today), we=addDays(ws,6), done=new Set(S.sessions.filter(s=>s.date>=ws&&s.date<=we).map(s=>s.templateId));
     for(let k=0;k<7;k++){const d=addDays(ws,k); if(d>=today) break; const m=tplForDate(d,tpls); if(m&&!done.has(m.id)) return m}}
@@ -237,7 +246,10 @@ function renderAvui(){
         return `<li><span class="k">${k+1}</span><span class="txt"><span class="nm">${esc(ex.name)}</span><span class="tg num">${p?p.sets.map(x=>fn(x.kg,2)+"×"+x.reps).join(" · "):"primera vegada"}</span></span><span class="bd ${d}">${d==="up"?"↑":d==="down"?"↓":d==="same"?"=":"·"}</span></li>`}).join("")}</ol>
       <button class="go" id="h-start">▶ Començar</button></div>`;
   }
-  if(tpls.length>1&&!rest) h+=`<div><span class="lbl">Canviar rutina</span><div class="chips" style="margin-top:8px">${tpls.map(t=>`<button data-tpl="${esc(t.id)}" class="${t.id===draft.templateId?"on":""}">${esc(splitName(t.name).tag||t.name)}</button>`).join("")}</div></div>`;
+  if(tpls.length>1){ const w=weekRoutines(tpls), nd=w.due.filter(t=>w.done.has(t.id)).length, tg=t=>splitName(t.name).tag||t.name;
+    const st=!w.due.length?"":w.pending.length?`Aquesta setmana: ${nd} de ${w.due.length} fetes · ${w.pending.length===1?"queda la":"queden"} <b>${w.pending.map(t=>esc(tg(t))).join(", ")}</b>`:`Aquesta setmana: <b>${nd} de ${w.due.length} fetes</b> · setmana completa 💪`;
+    h+=`<div class="wkr"><span class="lbl">${rest?"Rutines":"Canviar rutina"}</span>${st?`<div class="wkr-st">${st}</div>`:""}<div class="chips" style="margin-top:8px">${tpls.map(t=>{const dn=w.done.has(t.id), pd=!dn&&w.pending.includes(t);
+      return `<button data-tpl="${esc(t.id)}" class="${[t.id===draft.templateId&&!rest?"on":"",dn?"done":"",pd?"todo":""].join(" ").trim()}"${dn?` aria-label="${esc(tg(t))}, feta aquesta setmana"`:""}>${dn?"✓ ":""}${esc(tg(t))}</button>`}).join("")}</div></div>`; }
   h+=(typeof guideCard==="function"?guideCard():"")+(typeof checkinCard==="function"?checkinCard():"")+weightQuick()+(typeof habitsCard==="function"?habitsCard():"")+miniWeek()+`</div>`;
   el.innerHTML=h;
 }
@@ -856,12 +868,12 @@ if(window.QStore) QStore.on("_view",()=>{ lastSaved=null; progEx=null; nutShow=n
 (async()=>{
   const timer=setTimeout(()=>setStatus("Encara no es poden carregar les dades. Revisa la connexió; el que vegis pot no estar actualitzat."),10000);
   try{ db=window.qapp&&window.qapp.use?await window.qapp.use("db"):null }catch(e){db=null}
-  if(!db){clearTimeout(timer);setStatus("La base de dades no està disponible en aquesta vista. Torna a obrir l'app amb connexió.");return}
+  if(!db){if(window.nxSplashOff) nxSplashOff();clearTimeout(timer);setStatus("La base de dades no està disponible en aquesta vista. Torna a obrir l'app amb connexió.");return}
   const sub=(col,order)=>{let q=db.collection(col); if(order) q=q.orderBy(order[0],order[1]);
     q.onSnapshot(snap=>{S[col]=snap.docs.map(d=>({id:d.id,...d.data()})); mergePend(col);
       if(!snap.metadata.fromCache){ready[col]=true; if(Object.values(ready).every(Boolean)){clearTimeout(timer);setStatus("")}}
       if(col==="intake"&&needIntake()&&cur!=="valoracio"){location.hash="valoracio";return}
-      if(sheetKind) return; render();},
+      if(sheetKind) return; render(); if(window.nxSplashOff) nxSplashOff();},
     err=>{clearTimeout(timer);setStatus("No s'han pogut carregar les dades ("+col+"): "+err.message)});};
   restoreDraft(); flushPend();
   sub("exercises"); sub("sessions",["date","desc"]); sub("templates"); sub("reports",["week","desc"]); sub("bodyweight",["date","desc"]); sub("targets"); sub("nutrition"); sub("kcallog",["date","desc"]); sub("intake"); sub("programs"); sub("checkins"); sub("body",["date","desc"]);

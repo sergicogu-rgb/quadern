@@ -223,6 +223,10 @@
   window.qapp={use:async n=>n==="db"?dbReady:n==="assets"?assets:null};
   const lastUid=L.get("q_uid",null);
   const offlineEnter=()=>{Q.uid=lastUid;Q.profile=L.get("q_profile",null);Q.consent=L.get("q_consent",null);if(!gate())dbResolve(DB)};
+  /* Arrencada ràpida (2026-11-27, VSCOMA_07): si el mòbil ja coneix l'usuari, s'entra a l'instant amb les dades guardades
+     i la sessió, el perfil i la sincronització es comproven al darrere (onSession). No en enllaços d'accés o de contrasenya. */
+  const fastEnter=!!(sb&&lastUid&&L.get("q_profile",null)&&!/access_token|type=|error/.test(location.hash));
+  if(fastEnter) offlineEnter();
   if(!sb){ if(lastUid) offlineEnter(); else showLogin(); }
   else { sb.auth.getSession().then(({data})=>{
     if(data.session) onSession(data.session);
