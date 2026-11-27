@@ -124,7 +124,9 @@ function setsFromPlan(p,id){
 }
 const newSetsFor=id=>setsFromPlan(planSession([id],draft.id)[id],id);
 const bestE1=sets=>Math.max(0,...(sets||[]).map(e1rm));
-const setStr=s=>`${fn(s.kg,2)}×${s.reps??"–"}${s.rir?` @${s.rir}`:""}`;
+const setStr=s=>`${fn(s.kg,2)}×${s.reps??"–"}`;
+/* Recambra en paraules (2026-11-27): «2 a la recambra» en lloc de «@2» */
+const recStr=sets=>{const r=[...new Set((sets||[]).map(x=>x.rir).filter(Boolean))].sort((a,b)=>a-b); return !r.length?"":` · ${r.length>1?r[0]+"-"+r[r.length-1]:r[0]} a la recambra`};
 const vol=sets=>(sets||[]).reduce((a,z)=>a+(z.kg||0)*(z.reps||0),0);
 
 function setStatus(msg){ $("#status").innerHTML=msg?`<div class="note">${esc(msg)}</div>`:""; }
@@ -295,16 +297,16 @@ function renderWorkout(){
    ${ex.photo?`<button class="photo has" data-act="photo" aria-label="Foto de ${esc(ex.name)}"><img src="${esc(ex.photo)}" alt=""></button>`:stockPhoto(ex)||`<button class="photo small" data-act="photo">＋ Afegeix una foto de la màquina</button>`}
    <div class="exhead"><div><span class="lbl">Exercici ${i+1} de ${n}</span><h2>${esc(ex.name)}</h2><span class="chip">${esc(ex.muscle||"")}</span></div><button class="plain" data-act="opts" aria-label="Opcions de l'exercici" style="font-size:22px;line-height:1">⋯</button></div>
    ${why?`<div class="why ${d==="up"?"upg":d==="down"?"dn":""}">${why}</div>`:""}
-   <div class="last">${prev?`Última vegada · ${esc(fdate(prev.date,{day:"numeric",month:"short"}))}: <b class="num">${prev.sets.map(setStr).join(" · ")}</b>`:(pp?"Primera vegada que el registres.":`<b>Primera vegada.</b> Tria un pes amb què puguis fer ${c.rng(0).min}–${c.rng(0).max} repeticions deixant-ne ${rirTarget()||"2-3"} a la recambra. La propera vegada l'app et proposarà la càrrega.`)}</div>
+   <div class="last">${prev?`Última vegada · ${esc(fdate(prev.date,{day:"numeric",month:"short"}))}: <b class="num">${prev.sets.map(setStr).join(" · ")}</b>${esc(recStr(prev.sets))}`:(pp?"Primera vegada que el registres.":`<b>Primera vegada.</b> Tria un pes amb què puguis fer ${c.rng(0).min}–${c.rng(0).max} repeticions deixant-ne ${rirTarget()||"2-3"} a la recambra. La propera vegada l'app et proposarà la càrrega.`)}</div>
    <div class="sets"><div class="sethead"><span>Sèrie</span><span>kg</span><span>Reps</span><span></span></div>
    ${it.sets.map((s,j)=>{const r=c.rng(j);return `<div class="setrow ${s.done?"done":""}" data-s="${j}">
-      <div class="sn"><b>${j+1}</b><small>${r.min}–${r.max}</small><button data-act="rir" class="${s.rir?"on":""}" aria-label="Repeticions a la recambra (RIR): toca per apuntar-les">RIR ${s.rir?s.rir:"–"}</button></div>
+      <div class="sn"><b>${j+1}</b><small>${r.min}–${r.max}</small><button data-act="rir" class="${s.rir?"on":""}" aria-label="Repeticions que et quedaven a la recambra: toca per apuntar-les">Rec. ${s.rir?s.rir:"–"}</button></div>
       <div class="step"><button data-act="dec" data-f="kg" aria-label="Menys kg">−</button><input id="kg-${i}-${j}" class="${s.t?"t":""}" data-f="kg" inputmode="decimal" value="${fin(s.kg)}" placeholder="kg" aria-label="kg sèrie ${j+1}"><button data-act="inc" data-f="kg" aria-label="Més kg">+</button></div>
       <div class="step"><button data-act="dec" data-f="reps" aria-label="Menys reps">−</button><input id="reps-${i}-${j}" class="${s.t?"t":""}" data-f="reps" inputmode="numeric" value="${fin(s.reps)}" placeholder="reps" aria-label="Reps sèrie ${j+1}"><button data-act="inc" data-f="reps" aria-label="Més reps">+</button></div>
       <button class="chk" data-act="chk" aria-label="Sèrie ${j+1} feta">✓</button>${s.done?cmpHTML(it.exId,j,s,lastChk&&lastChk.i===i&&lastChk.j===j):""}</div>`}).join("")}
    </div>
    <div class="row"><button class="ghost" data-act="addset">+ Sèrie</button>${it.sets.length>1?`<button class="ghost" data-act="rmset">− Treure l'última</button>`:""}</div>
-   <p class="sub" style="font-size:13px">${it.sets.some(s=>s.t&&s.kg!==""&&s.kg!=null)?"Els números en blau són l'objectiu. Ajusta'ls amb − i + si cal, i t":"T"}oca ✓ en acabar cada sèrie. <b>RIR</b> = repeticions que et queden a la recambra${rirTarget()?` (objectiu: ${esc(rirTarget())})`:""}.</p>
+   <p class="sub" style="font-size:13px">${it.sets.some(s=>s.t&&s.kg!==""&&s.kg!=null)?"Els números en blau són l'objectiu. Ajusta'ls amb − i + si cal, i t":"T"}oca ✓ en acabar cada sèrie. <b>Rec.</b> = repeticions que et quedaven a la recambra (toca-ho per apuntar-ho)${rirTarget()?` (objectiu: ${esc(rirTarget())})`:""}.</p>
   </div>`;
   el.innerHTML=h;
   const all=exState(it)==="done", lastEx=i===n-1;
@@ -568,6 +570,14 @@ async function saveBW(date,kg,b){
   queueWrite("bodyweight",date,{date,kg:Math.round(kg*100)/100,updatedAt:new Date().toISOString()}); b.blur(); render();
   await flushPend(); toast(pend.some(w=>w.col==="bodyweight"&&w.id===date)?"Pes desat al mòbil · es pujarà quan tinguis connexió":"Pes desat");
 }
+/* Color del canvi de pes segons l'objectiu de la pauta (2026-11-27): verd si va cap on toca (definició baixa, volum puja),
+   vermell si va en contra; neutre en manteniment, recomposició o sense pauta. */
+function wDirClass(d){
+  if(!d) return ""; const p=typeof activePauta==="function"?activePauta():null;
+  const ph=p&&typeof PHASES!=="undefined"&&typeof phaseOf==="function"?PHASES[phaseOf(p.phase||p.title)]:null;
+  if(!ph||(ph.lo<0&&ph.hi>0)) return "";
+  return Math.sign(d)===(ph.hi<=0?-1:1)?"up":"down";
+}
 function renderPes(){
   const el=$("#v-pes"); const list=bwData(); const today=todayISO(); const tEntry=list.find(x=>x.date===today);
   const W=bwWeeks(list), cw=weekStart(today), curW=W.find(w=>w.week===cw), prevW=[...W].reverse().find(w=>w.week<cw), last=list[list.length-1];
@@ -576,15 +586,15 @@ function renderPes(){
    <div class="card stack"><div class="step lg"><button data-bw="-0.1" aria-label="Menys">−</button><input id="b-kg" inputmode="decimal" value="${tEntry?fin(tEntry.kg):last?fin(last.kg):""}" placeholder="82,5" aria-label="Pes en kg"><button data-bw="0.1" aria-label="Més">+</button></div>
      <div class="row"><label class="f"><span class="lbl">Data</span><input type="date" id="b-date" value="${esc(today)}"></label><button class="primary" id="b-save" style="height:50px">${tEntry?"Actualitzar":"Desar"}</button></div></div>
    <div class="tiles"><div class="tile"><div class="lbl">Últim</div><div class="v">${last?fn(last.kg,2):"–"}<small> kg</small></div></div>
-    <div class="tile"><div class="lbl">Mitjana setm.</div><div class="v">${curW?fn(curW.avg,2):"–"}<small> · ${curW?curW.n:0}/7</small></div></div>
-    <div class="tile"><div class="lbl">vs setm. ant.</div><div class="v ${d<0?"down":d>0?"up":""}">${d==null?"–":(d>0?"+":"")+fn(d,2)}<small>${dp==null?"":" · "+(dp>0?"+":"")+fn(dp,1)+" %"}</small></div></div></div>`;
+    <div class="tile"><div class="lbl">Mitjana setm.</div><div class="v">${curW?fn(curW.avg,1):"–"}<small> kg</small><small class="ln">${curW?curW.n:0} de 7 dies</small></div></div>
+    <div class="tile"><div class="lbl">vs setm. ant.</div><div class="v ${wDirClass(d)}">${d==null?"–":(d>0?"+":"")+fn(d,1)}${d==null?"":"<small> kg</small>"}<small class="ln">${dp==null?"":(dp>0?"+":"")+fn(dp,1)+" %"}</small></div></div></div>`;
   if(!list.length){el.innerHTML=h+`<div class="empty"><b>Encara no hi ha cap pes</b>Apunta el primer a dalt. Amb una setmana de dades ja tindràs la mitjana.</div></div>`;return}
   h+=`<div class="chartbox"><canvas id="b-chart" aria-label="Gràfic de pes corporal"></canvas></div>
    <div class="card tw" style="padding:6px 10px"><table><thead><tr><th>Setmana</th><th class="r">Mitjana</th><th class="r">Dies</th><th class="r">Canvi</th><th class="r">%</th></tr></thead><tbody>
    ${[...W].reverse().map((w,i,arr)=>{const p=arr[i+1];const dd=p?w.avg-p.avg:null;return `<tr><td>${esc(fdate(w.week,{day:"numeric",month:"short"}))}</td><td class="r num">${fn(w.avg,2)}</td><td class="r num">${w.n}</td><td class="r num">${dd==null?"–":(dd>0?"+":"")+fn(dd,2)}</td><td class="r num">${dd==null?"–":(dd>0?"+":"")+fn(dd/p.avg*100,2)}</td></tr>`}).join("")}
    </tbody></table></div>
    <div class="card tw" style="padding:6px 10px"><table><thead><tr><th>Dia</th><th class="r">kg</th><th></th></tr></thead><tbody>
-   ${[...list].reverse().slice(0,21).map(x=>`<tr><td>${esc(fdate(x.date))}</td><td class="r num">${fn(x.kg,2)}</td><td class="r">${x.hist?"":`<button class="plain" data-bwdel="${esc(x.date)}" style="padding:2px 6px;color:var(--bad)">${bwConfirm===x.date?"Confirma":"✕"}</button>`}</td></tr>`).join("")}
+   ${[...list].reverse().slice(0,21).map(x=>`<tr><td>${esc(fdate(x.date))}</td><td class="r num">${fn(x.kg,2)}</td><td class="r">${x.hist?"":`<button class="plain${bwConfirm===x.date?" conf":""}" data-bwdel="${esc(x.date)}" aria-label="Esborrar el pes del ${esc(fdate(x.date))}" style="padding:2px 6px">${bwConfirm===x.date?"Confirma":"✕"}</button>`}</td></tr>`).join("")}
    </tbody></table></div></div>`;
   el.innerHTML=h; drawBW(list);
 }
@@ -677,7 +687,9 @@ function sessCard(s){
 function renderSetmana(){
   const el=$("#v-setmana"); const ws=weekCursor, we=addDays(ws,6), today=todayISO();
   const list=sessionsSorted().filter(s=>s.date>=ws&&s.date<=we).reverse();
-  const prevList=S.sessions.filter(s=>s.date>=addDays(ws,-7)&&s.date<=addDays(ws,-1));
+  /* Setmana en curs: es compara amb la setmana anterior fins al mateix dia (2026-11-27), no amb la setmana sencera */
+  const partial=today>=ws&&today<=we, doneToday=S.sessions.some(s=>s.date===today), prevEnd=partial?addDays(today,doneToday?-7:-8):addDays(ws,-1);
+  const prevList=S.sessions.filter(s=>s.date>=addDays(ws,-7)&&s.date<=prevEnd);
   const mus={}, wv=x=>x.reduce((a,s)=>a+(s.items||[]).reduce((b,i)=>b+vol(i.sets),0),0);
   list.forEach(s=>(s.items||[]).forEach(i=>i.sets.forEach(z=>{if(effective(z)) mus[i.muscle]=(mus[i.muscle]||0)+1})));
   const v=wv(list), pv=wv(prevList), dv=pv?((v-pv)/pv*100):null;
@@ -696,7 +708,7 @@ function renderSetmana(){
    ${body}
    <div class="tiles"><div class="tile"><div class="lbl">Sessions</div><div class="v">${list.length}<small> / 4</small></div></div>
     <div class="tile"><div class="lbl">Volum</div><div class="v">${fn(v/1000,1)}<small> t</small></div></div>
-    <div class="tile"><div class="lbl">vs setm. ant.</div><div class="v ${dv>0?"up":dv<0?"down":""}">${dv==null?"–":(dv>0?"+":"")+fn(dv,0)+"<small> %</small>"}</div></div></div>`;
+    <div class="tile"><div class="lbl">vs setm. ant.</div><div class="v ${dv>0?"up":dv<0?"down":""}">${dv==null?"–":(dv>0?"+":"")+fn(dv,0)+"<small> %</small>"}<small class="ln">${partial&&dv!=null&&prevEnd>=addDays(ws,-7)?"fins a "+WD[(dt(prevEnd).getDay()+6)%7].toLowerCase():""}</small></div></div></div>`;
   if(list.length){
     h+=`<div class="card"><span class="lbl">Sèries efectives per múscul · objectiu 10–20</span><div class="bars" style="margin-top:12px">${MUSCLES.filter(m=>mus[m]).map(m=>{const n=mus[m];return `<div class="bar"><span>${esc(m)}</span><div class="track"><div class="zone"></div><div class="fill ${n<10?"low":n>20?"high":""}" style="width:${Math.min(n,25)/25*100}%"></div></div><span class="num" style="text-align:right;font-weight:700">${n}</span></div>`}).join("")}</div>
     <div class="legend"><span><i style="background:var(--warn)"></i>Menys de 10</span><span><i style="background:var(--accent)"></i>10–20</span><span><i style="background:var(--bad)"></i>Més de 20</span></div></div>`;
@@ -752,7 +764,7 @@ function renderAny(){
       let cells=""; for(let k=0;k<off;k++) cells+=`<span class="x"></span>`;
       for(let d=1;d<=days;d++){const iso=`${Y}-${mm}-${pad(d)}`;const ss=byDay[iso];
         cells+=`<button data-d="${iso}" class="${ss?"s":""} ${iso===today?"t":""} ${iso>today?"f":""}" aria-label="${esc(fdate(iso,{day:"numeric",month:"long"}))}${ss?": "+esc(ss.map(x=>x.name).join(", ")):""}" title="${esc(fdate(iso,{day:"numeric",month:"short"}))}${ss?" · "+esc(ss.map(x=>splitName(x.name).tag||x.name).join(", ")):""}"></button>`}
-      return `<div class="mon"><div class="mn">${mn}${cnt?`<small>${cnt}</small>`:""}</div><div class="cal">${cells}</div></div>`}).join("")}</div></div>
+      return `<div class="mon"><div class="mn">${mn}${cnt?`<small>${cnt} ${cnt===1?"sessió":"sessions"}</small>`:""}</div><div class="cal">${cells}</div></div>`}).join("")}</div></div>
    <div class="ylegend"><span><i style="background:var(--good)"></i>Dia entrenat</span><span><i style="background:var(--raise)"></i>Descans</span><span><i style="outline:2px solid var(--accent);outline-offset:-1px;background:var(--raise)"></i>Avui</span></div>
    <p class="sub" style="font-size:13px">Toca un dia per veure'l a la Setmana. La ratxa compta les setmanes seguides amb 4 sessions o més.</p></div>`;
   el.innerHTML=h;
@@ -788,7 +800,7 @@ function eqSheet(){
 }
 function renderNutricio(){
   const el=$("#v-nutricio"); const act=activePauta(), nxt=nextPauta(); const P=(nutShow==="next"&&nxt)?nxt:act;
-  let h=`<div class="stack">${liveBanner()}<div class="vhead"><span class="lbl">${P?(P.from>todayISO()?(P===act&&!pautes().some(x=>x.from<=todayISO())?"La teva pauta · comença el ":"Propera pauta · des del "):"Pauta activa · des del ")+esc(fdate(P.from,{day:"numeric",month:"long",year:"numeric"})):"Alimentació"}</span><h1><em>Nutrició</em></h1></div>`;
+  let h=`<div class="stack">${liveBanner()}<div class="vhead"><span class="lbl">${P?(P.from>todayISO()?(P===act&&!pautes().some(x=>x.from<=todayISO())?"La teva pauta · comença el ":"Propera pauta · des del "):"Pauta activa · des del ")+esc(fdate(P.from,{day:"numeric",month:"long",year:"numeric"})):"Alimentació"}</span><h1>El teu <em>menjar</em></h1></div>`;
   if(!P){el.innerHTML=h+`<div class="empty"><b>Encara no hi ha cap pauta</b>Quan el teu entrenador hi carregui la pauta, aquí veuràs els àpats i les equivalències de cada aliment.</div></div>`;return}
   const tg=P.targets||{};
   h+=`<div class="ph"><span class="pill">${esc(P.phase||"")}</span>${P.provisional?'<span class="pill w">Provisional</span>':""}<span class="lbl">${esc(P.source||"")}</span></div>`;

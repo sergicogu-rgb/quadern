@@ -204,7 +204,7 @@ i.done{background:var(--good)} i.plan{border:2px solid var(--accent)} i.miss{bac
 .sn{display:flex;flex-direction:column;align-items:center;line-height:1.05}
 .sn b{font-family:var(--display);font-size:22px}
 .sn small{font-size:11px;color:var(--muted);font-weight:600}
-.sn button{margin-top:3px;padding:2px 5px;font-size:10px;border-radius:6px;font-weight:700;letter-spacing:.04em;color:var(--muted);background:transparent}
+.sn button{white-space:nowrap;margin-top:3px;padding:2px 5px;font-size:10px;border-radius:6px;font-weight:700;letter-spacing:.04em;color:var(--muted);background:transparent}
 .sn button.on{color:var(--warn);border-color:var(--warn)}
 .chk{height:48px;width:48px;padding:0;border-radius:14px;font-size:22px;font-weight:800;color:var(--muted);background:var(--raise)}
 .setrow.done .chk{background:var(--good);border-color:var(--good);color:var(--good-ink)}
@@ -219,6 +219,12 @@ i.done{background:var(--good)} i.plan{border:2px solid var(--accent)} i.miss{bac
 .rest .l{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;opacity:.7}
 .rest button{white-space:nowrap;background:transparent;color:inherit;border-color:currentColor;padding:7px 11px;border-radius:999px;font-size:14px}
 .rest.end{background:var(--good);color:var(--good-ink)}
+/* Zona tàctil més gran sense canviar com es veuen (2026-11-27): mínim ~44 px per al dit */
+.sn button,[data-bwdel],[data-rw],#t-acc,.linkb,.seg button{position:relative}
+.sn button::after,[data-bwdel]::after,[data-rw]::after,#t-acc::after,.linkb::after{content:"";position:absolute;inset:-12px -8px}
+.seg button::after{content:"";position:absolute;inset:-14px -2px}
+[data-bwdel]{color:var(--muted);opacity:.7}[data-bwdel].conf{color:var(--bad);opacity:1;font-weight:700}
+.wo{padding-bottom:96px} /* espai perquè la píndola de descans no tapi l'última sèrie */
 .rest button.snd{padding:7px 9px;border-color:transparent}
 .rest.soon{animation:restsoon .5s ease-in-out infinite alternate}
 @keyframes restsoon{to{background:var(--accent);color:var(--accent-ink)}}
@@ -251,11 +257,11 @@ i.done{background:var(--good)} i.plan{border:2px solid var(--accent)} i.miss{bac
 /* any */
 .yearnav{display:flex;align-items:center;justify-content:space-between;gap:8px}
 .yearnav strong{font-family:var(--display);font-size:28px;font-weight:800}
-.months{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px 10px}
+.months{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px 14px}
 .mon{min-width:0}
 .mon .mn{font-family:var(--display);font-size:16px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px;display:flex;justify-content:space-between;align-items:baseline}
 .mon .mn small{font-family:var(--body);font-size:11px;color:var(--good);font-weight:700;letter-spacing:0}
-.cal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:2px}
+.cal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:3px}
 .cal span,.cal button{aspect-ratio:1;border-radius:3px;background:var(--raise);padding:0;border:0;min-width:0}
 .cal span.x{background:transparent}
 .cal button.s{background:var(--good)}
@@ -271,6 +277,8 @@ i.done{background:var(--good)} i.plan{border:2px solid var(--accent)} i.miss{bac
 .tile{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:12px}
 .tile .v{font-family:var(--display);font-weight:800;font-size:30px;line-height:1.05;margin-top:4px;font-variant-numeric:tabular-nums}
 .tile .v small{font-size:15px;font-weight:600;color:var(--muted)}
+.tile .v small.ln{display:block;font-size:13px;margin-top:6px;letter-spacing:0;font-family:inherit}
+.tile .v small.ln:empty{display:none}
 .pr{display:inline-block;font-size:11px;font-weight:800;letter-spacing:.07em;color:var(--good);background:var(--good-soft);padding:2px 7px;border-radius:6px;margin-left:6px;vertical-align:2px}
 table{border-collapse:collapse;width:100%;font-size:14px}
 th,td{text-align:left;padding:9px 8px;border-bottom:1px solid var(--line);vertical-align:top}

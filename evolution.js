@@ -12,6 +12,8 @@ let EVO=null, EVO_for=null, EVO_busy=false, EVO_t=0, EVO_open=false, EVO_cel=nul
 
 const evoWho=()=>window.QStore&&(QStore.target||QStore.uid);
 const evoMine=()=>window.QStore&&!QStore.target;
+/* Sense connexió i sense còpia guardada: missatge clar en lloc de «Calculant…» per sempre (2026-11-27) */
+let EVO_err=false;
 function evoLoad(force){
   const u=evoWho(); if(!u||!QStore.rpc) return;
   if(EVO_for!==u){ EVO_for=u; EVO_t=0; try{EVO=JSON.parse(localStorage.getItem("q_evo_"+u)||"null")}catch(_){EVO=null} }
@@ -19,10 +21,10 @@ function evoLoad(force){
   EVO_busy=true;
   QStore.rpc("avatar_refresh",{client:u}).then(d=>{
     if(evoWho()!==u) return;
-    EVO=d; EVO_t=Date.now(); try{localStorage.setItem("q_evo_"+u,JSON.stringify(d))}catch(_){}
+    EVO=d; EVO_err=false; EVO_t=Date.now(); try{localStorage.setItem("q_evo_"+u,JSON.stringify(d))}catch(_){}
     if(cur==="avui"||cur==="resum") render();
     evoMaybeCelebrate();
-  }).catch(()=>{ EVO_t=Date.now() }).finally(()=>{ EVO_busy=false });
+  }).catch(()=>{ EVO_t=Date.now(); if(!EVO&&!EVO_err){ EVO_err=true; if(cur==="avui"||cur==="resum") render(); } }).finally(()=>{ EVO_busy=false });
 }
 
 /* ---------- avatar: imatge de la biblioteca o silueta provisional ---------- */
@@ -70,7 +72,7 @@ function evoCard(){
   if(!window.QStore||!evoWho()) return "";
   evoLoad();
   const d=EVO;
-  if(!d) return `<div class="card evo"><div class="evo-av">${evoSvg("m",1)}</div><div class="evo-txt"><span class="lbl">${EVO_BRAND()}</span><b>Calculant la teva evolució…</b></div></div>`;
+  if(!d) return `<div class="card evo"><div class="evo-av">${evoSvg("m",1)}</div><div class="evo-txt"><span class="lbl">${EVO_BRAND()}</span><b>${EVO_err?"La teva evolució s'actualitzarà quan tinguis connexió":"Calculant la teva evolució…"}</b></div></div>`;
   const c=d.current||{}, b=evoBar(d);
   return `<button class="card evo" id="evo-open" type="button">
     ${evoAvatar(d)}

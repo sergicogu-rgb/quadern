@@ -178,8 +178,8 @@ function autoReportCard(){
       <button class="plain" data-rw="-7" aria-label="Setmana anterior" ${ws<=first?"disabled":""}>‹</button>
       <div style="text-align:center"><span class="lbl">Resum automàtic${ws===cur?" · en curs":""}</span><h3 style="margin:2px 0 0">${esc(fdate(r.ws,{day:"numeric",month:"short"}))} – ${esc(fdate(r.we,{day:"numeric",month:"short"}))}</h3></div>
       <button class="plain" data-rw="7" aria-label="Setmana següent" ${ws>=cur?"disabled":""}>›</button></div>
-    <div class="tiles"><div class="tile"><div class="lbl">Sessions</div><div class="v">${r.ses.length}<small> · ${r.sets.length} sèries</small></div></div>
-      <div class="tile"><div class="lbl">Pes mitjà</div><div class="v">${r.bwA!=null?fn(r.bwA,1):"–"}<small>${r.dPct!=null?" · "+(r.dPct>0?"+":"")+fn(r.dPct,1)+" %":""}</small></div></div>
+    <div class="tiles"><div class="tile"><div class="lbl">Sessions</div><div class="v">${r.ses.length}<small class="ln">${r.sets.length} sèries</small></div></div>
+      <div class="tile"><div class="lbl">Pes mitjà</div><div class="v">${r.bwA!=null?fn(r.bwA,1):"–"}<small class="ln">${r.bwA!=null?"kg":""}${r.dPct!=null?" · "+(r.dPct>0?"+":"")+fn(r.dPct,1)+" %":""}</small></div></div>
       <div class="tile"><div class="lbl">Dies de pes</div><div class="v">${r.wBn}<small> / 7</small></div></div></div>
     <ul class="tips">${r.flags.map(f=>`<li>${esc(f)}</li>`).join("")}</ul>
     ${typeof checkinView==="function"?checkinView(checkinOf(ws)):""}

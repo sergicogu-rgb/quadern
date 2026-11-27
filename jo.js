@@ -120,7 +120,7 @@ function renderGuia(){
       <div class="gbar">${bar.map(([k,l,d])=>`<a href="#${k}">${gsvg(k)}<b>${l}</b><small>${d}</small></a>`).join("")}</div></div>
     <div class="card stack"><span class="lbl">Com puges de pes</span>
       <div class="gprog"><div><small>Sessió 1</small><b>10 · 10 · 9</b><span>60 kg</span></div><i>→</i><div><small>Sessió 2</small><b>12 · 12 · 12</b><span>60 kg</span></div><i>→</i><div class="up"><small>Sessió 3</small><b>8 · 8 · 8</b><span>62,5 kg ⬆</span></div></div>
-      <p class="sub" style="margin:0;font-size:13px">Quan fas el màxim del rang a totes les sèries, l'app et proposa pujar. Deixa sempre 1-3 reps a la recambra.</p></div>
+      <p class="sub" style="margin:0;font-size:13px">Quan fas el màxim del rang a totes les sèries, l'app et proposa pujar. Deixa sempre 2-3 repeticions a la recambra.</p></div>
     ${(window.QStore||{}).aiOn?`<div class="gai"><span class="gav">${esc(ai.charAt(0))}</span><div><b>${esc(ai)}</b> analitza les teves dades i proposa ajustos.<br><small>✓ El teu entrenador ho revisa sempre abans que t'arribi.</small></div></div>`:""}
     <div class="gtips"><span>🔔 Activa les notificacions a ⚙︎</span><span>📲 Afegeix l'app a la pantalla d'inici</span></div>
     ${typeof planDoc==="function"&&(planDoc()||{}).status==="provisional"?`<div class="note" style="margin:0">Els primers dies la rutina i la pauta són <b>provisionals</b>: el teu entrenador les revisa en menys de 24 h.</div>`:""}
